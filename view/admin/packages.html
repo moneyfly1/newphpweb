@@ -83,13 +83,16 @@
                 data-traffic-limit="{$package.traffic_limit}"
                 data-speed-limit="{$package.speed_limit}"
                 data-features="{:implode(',', $package['feature_tags'])}">编辑</button>
-            <button class="button button-secondary button-small" type="button" data-package-detail='{"id":{$package.id},"name":"{$package.name}","description":"{$package.description}","monthly":"{$package.monthly_price}","quarterly":"{$package.quarterly_price}","yearly":"{$package.yearly_price}","devices":"{$package.included_devices}","speed":"{$package.speed_limit}","features":"{:implode(' / ', $package['feature_tags'])}"}'>详情</button>
+            <button class="button button-secondary button-small" type="button"
+                data-package-detail-id="{$package.id}">详情</button>
         </div>
     </article>
     {/volist}
 </section>
 
 <script>
+const _allPkgs = {php}echo json_encode($packages ?? [], JSON_UNESCAPED_UNICODE);{/php};
+
 document.getElementById('btn-search')?.addEventListener('click', () => {
     const params = new URLSearchParams();
     [['keyword', 'filter-keyword'], ['status', 'filter-status']].forEach(([key, id]) => {
@@ -103,20 +106,28 @@ document.getElementById('btn-reset')?.addEventListener('click', () => {
     window.location.href = '/admin/packages';
 });
 
-document.querySelectorAll('[data-package-detail]').forEach((button) => {
+document.querySelectorAll('[data-package-detail-id]').forEach((button) => {
     button.addEventListener('click', () => {
-        const detail = JSON.parse(button.dataset.packageDetail || '{}');
-        modalMgr.show('套餐详情', [
-            { key: 'id', label: '套餐ID', value: detail.id || '', type: 'text' },
-            { key: 'name', label: '套餐名称', value: detail.name || '', type: 'text' },
-            { key: 'description', label: '描述', value: detail.description || '', type: 'textarea' },
-            { key: 'monthly', label: '月付价格', value: detail.monthly || '', type: 'text' },
-            { key: 'quarterly', label: '季付价格', value: detail.quarterly || '', type: 'text' },
-            { key: 'yearly', label: '年付价格', value: detail.yearly || '', type: 'text' },
-            { key: 'devices', label: '设备数', value: detail.devices || '', type: 'text' },
-            { key: 'speed', label: '速率Mbps', value: detail.speed || '', type: 'text' },
-            { key: 'features', label: '功能标签', value: detail.features || '', type: 'textarea' },
-        ], () => {});
+        const pkg = _allPkgs.find(p => String(p.id) === button.dataset.packageDetailId);
+        if (!pkg) return;
+        const d = document.createElement('div');
+        d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center';
+        d.innerHTML=`<div style="background:#fff;border-radius:12px;padding:24px 28px;max-width:480px;width:92%;box-shadow:0 8px 32px rgba(0,0,0,.18)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0;font-size:17px">${pkg.name}</h3><span onclick="this.closest('div[style*=fixed]').remove()" style="cursor:pointer;font-size:20px">&times;</span></div>
+<p style="color:#888;font-size:13px;margin:0 0 12px">${pkg.description||'暂无描述'}</p>
+<table style="width:100%;border-collapse:collapse;font-size:14px">
+<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;color:#999;width:80px">月付</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0">¥${pkg.monthly_price}</td></tr>
+<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;color:#999">季付</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0">¥${pkg.quarterly_price}</td></tr>
+<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;color:#999">年付</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0">¥${pkg.yearly_price}</td></tr>
+<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;color:#999">设备</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0">${pkg.included_devices} 台</td></tr>
+<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;color:#999">流量</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0">${pkg.traffic_limit}</td></tr>
+<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;color:#999">速率</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0">${pkg.speed_limit} Mbps</td></tr>
+<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;color:#999">状态</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0">${pkg.is_active?'<b style="color:#43a047">启用</b>':'<b style="color:#e53935">停用</b>'}</td></tr>
+<tr><td style="padding:6px 8px;color:#999">特性</td><td style="padding:6px 8px">${(pkg.feature_tags||[]).join(' / ')||'无'}</td></tr>
+</table>
+<div style="margin-top:14px;text-align:right"><button onclick="this.closest('div[style*=fixed]').remove()" style="padding:5px 14px;border:none;background:#667eea;color:#fff;border-radius:6px;cursor:pointer">关闭</button></div></div>`;
+        document.body.appendChild(d);
+        d.addEventListener('click',e=>{if(e.target===d)d.remove()});
     });
 });
 </script>

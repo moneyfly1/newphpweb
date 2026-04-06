@@ -99,7 +99,7 @@
                                 data-user-limit="{$coupon.user_limit}"
                                 data-status="{$coupon.status_flag}">编辑</button>
                             <button class="button button-ghost button-small" type="button" data-copy="{$coupon.code}">复制</button>
-                            <button class="button button-secondary button-small" type="button" data-coupon-detail='{"id":{$coupon.id},"code":"{$coupon.code}","name":"{$coupon.name}","type":"{$coupon.type}","value":"{$coupon.value}","used":"{$coupon.used}","period":"{$coupon.period}"}'>详情</button>
+                            <button class="button button-secondary button-small" type="button" data-coupon-detail-id="{$coupon.id}">详情</button>
                         </div>
                     </td>
                 </tr>
@@ -110,6 +110,8 @@
 </section>
 
 <script>
+const _allCoupons = {php}echo json_encode($coupons ?? [], JSON_UNESCAPED_UNICODE);{/php};
+
 document.getElementById('btn-search')?.addEventListener('click', () => {
     const params = new URLSearchParams();
     [['keyword', 'filter-keyword'], ['status', 'filter-status'], ['type', 'filter-type']].forEach(([key, id]) => {
@@ -123,18 +125,25 @@ document.getElementById('btn-reset')?.addEventListener('click', () => {
     window.location.href = '/admin/coupons';
 });
 
-document.querySelectorAll('[data-coupon-detail]').forEach((button) => {
+document.querySelectorAll('[data-coupon-detail-id]').forEach((button) => {
     button.addEventListener('click', () => {
-        const detail = JSON.parse(button.dataset.couponDetail || '{}');
-        modalMgr.show('优惠券详情', [
-            { key: 'id', label: '优惠券ID', value: detail.id || '', type: 'text' },
-            { key: 'code', label: '优惠码', value: detail.code || '', type: 'text' },
-            { key: 'name', label: '名称', value: detail.name || '', type: 'text' },
-            { key: 'type', label: '类型', value: detail.type || '', type: 'text' },
-            { key: 'value', label: '面值', value: detail.value || '', type: 'text' },
-            { key: 'used', label: '使用量', value: detail.used || '', type: 'text' },
-            { key: 'period', label: '有效期', value: detail.period || '', type: 'textarea' },
-        ], () => {});
+        const c = _allCoupons.find(x => String(x.id) === button.dataset.couponDetailId);
+        if (!c) return;
+        const d = document.createElement('div');
+        d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center';
+        d.innerHTML=`<div style="background:#fff;border-radius:12px;padding:24px 28px;max-width:460px;width:92%;box-shadow:0 8px 32px rgba(0,0,0,.18)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0;font-size:17px">优惠券详情</h3><span onclick="this.closest('div[style*=fixed]').remove()" style="cursor:pointer;font-size:20px">&times;</span></div>
+<table style="width:100%;border-collapse:collapse;font-size:14px">
+<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;color:#999;width:80px">优惠码</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;font-weight:600">${c.code}</td></tr>
+<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;color:#999">名称</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0">${c.name}</td></tr>
+<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;color:#999">类型</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0">${c.type}</td></tr>
+<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;color:#999">面值</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0">${c.value}</td></tr>
+<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;color:#999">使用量</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0">${c.used}</td></tr>
+<tr><td style="padding:6px 8px;color:#999">有效期</td><td style="padding:6px 8px">${c.period}</td></tr>
+</table>
+<div style="margin-top:14px;text-align:right"><button onclick="this.closest('div[style*=fixed]').remove()" style="padding:5px 14px;border:none;background:#667eea;color:#fff;border-radius:6px;cursor:pointer">关闭</button></div></div>`;
+        document.body.appendChild(d);
+        d.addEventListener('click',e=>{if(e.target===d)d.remove()});
     });
 });
 </script>

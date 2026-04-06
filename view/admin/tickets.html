@@ -99,7 +99,7 @@
                     <td class="table-actions">
                         <div class="button-row compact-action-row">
                             <button class="button button-ghost button-small" type="button" data-admin-ticket-reply="{$ticket.no}">回复</button>
-                            <button class="button button-secondary button-small" type="button" data-ticket-detail='{"id":{$ticket.id},"no":"{$ticket.no}","user":"{$ticket.user}","user_id":{$ticket.user_id},"subject":"{$ticket.subject}","status":"{$ticket.status}","priority":"{$ticket.priority}","updated_at":"{$ticket.updated_at}"}'>详情</button>
+                            <button class="button button-secondary button-small" type="button" data-ticket-detail-id="{$ticket.id}">详情</button>
                         </div>
                     </td>
                 </tr>
@@ -110,6 +110,8 @@
 </section>
 
 <script>
+const _allTickets = {php}echo json_encode($tickets ?? [], JSON_UNESCAPED_UNICODE);{/php};
+
 document.getElementById('btn-search')?.addEventListener('click', () => {
     const params = new URLSearchParams();
     [['keyword', 'filter-keyword'], ['status', 'filter-status'], ['type', 'filter-type'], ['date_from', 'filter-date-from'], ['date_to', 'filter-date-to']].forEach(([key, id]) => {
@@ -123,19 +125,25 @@ document.getElementById('btn-reset')?.addEventListener('click', () => {
     window.location.href = '/admin/tickets';
 });
 
-document.querySelectorAll('[data-ticket-detail]').forEach((button) => {
+document.querySelectorAll('[data-ticket-detail-id]').forEach((button) => {
     button.addEventListener('click', () => {
-        const detail = JSON.parse(button.dataset.ticketDetail || '{}');
-        modalMgr.show('工单详情', [
-            { key: 'id', label: '工单ID', value: detail.id || '', type: 'text' },
-            { key: 'no', label: '工单号', value: detail.no || '', type: 'text' },
-            { key: 'user', label: '用户', value: detail.user || '', type: 'text' },
-            { key: 'user_id', label: '用户ID', value: detail.user_id || '', type: 'text' },
-            { key: 'subject', label: '标题', value: detail.subject || '', type: 'text' },
-            { key: 'status', label: '状态', value: detail.status || '', type: 'text' },
-            { key: 'priority', label: '优先级', value: detail.priority || '', type: 'text' },
-            { key: 'updated_at', label: '更新时间', value: detail.updated_at || '', type: 'text' },
-        ], () => {});
+        const t = _allTickets.find(x => String(x.id) === button.dataset.ticketDetailId);
+        if (!t) return;
+        const d = document.createElement('div');
+        d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center';
+        d.innerHTML=`<div style="background:#fff;border-radius:12px;padding:24px 28px;max-width:460px;width:92%;box-shadow:0 8px 32px rgba(0,0,0,.18)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0;font-size:17px">工单详情</h3><span onclick="this.closest('div[style*=fixed]').remove()" style="cursor:pointer;font-size:20px">&times;</span></div>
+<table style="width:100%;border-collapse:collapse;font-size:14px">
+<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;color:#999;width:80px">工单号</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;font-weight:600">${t.no}</td></tr>
+<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;color:#999">用户</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0">${t.user} (ID: ${t.user_id})</td></tr>
+<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;color:#999">标题</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0">${t.subject}</td></tr>
+<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;color:#999">状态</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0">${t.status}</td></tr>
+<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;color:#999">优先级</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0">${t.priority}</td></tr>
+<tr><td style="padding:6px 8px;color:#999">更新时间</td><td style="padding:6px 8px">${t.updated_at}</td></tr>
+</table>
+<div style="margin-top:14px;text-align:right"><button onclick="this.closest('div[style*=fixed]').remove()" style="padding:5px 14px;border:none;background:#667eea;color:#fff;border-radius:6px;cursor:pointer">关闭</button></div></div>`;
+        document.body.appendChild(d);
+        d.addEventListener('click',e=>{if(e.target===d)d.remove()});
     });
 });
 </script>

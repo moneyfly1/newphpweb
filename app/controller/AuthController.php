@@ -26,6 +26,11 @@ class AuthController extends BaseController
         return app(CaptchaService::class);
     }
 
+    private function verifyService(): VerificationService
+    {
+        return app(VerificationService::class);
+    }
+
     public function showLogin()
     {
         if ($this->auth->check()) {
@@ -48,10 +53,26 @@ class AuthController extends BaseController
         $this->requireCsrf();
 
         $data = $this->request->only(['email', 'password', 'captcha']);
-        $this->validate($data, [
-            'email'    => 'require|email',
-            'password' => 'require|min:8',
-        ]);
+
+        try {
+            $this->validate($data, [
+                'email'    => 'require|email',
+                'password' => 'require|min:6',
+            ]);
+        } catch (\think\exception\ValidateException $e) {
+            $site = $this->panel->adminSiteSettings();
+            return $this->render('auth/login', [
+                'pageTitle'    => '登录 ' . $this->settings->appName(),
+                'loginNotice'  => $site['login_notice'],
+                'supportEmail' => $site['support_email'],
+                'authSettings' => $this->authSettings(),
+                'captcha'      => $this->captchaService()->generate(),
+                'error'        => $e->getMessage(),
+                'old'          => ['email' => $data['email'] ?? ''],
+            ]);
+        }
+
+        $site = $this->panel->adminSiteSettings();
 
         if ($this->authSettings()['require_captcha'] && trim((string) ($data['captcha'] ?? '')) === '') {
             return $this->render('auth/login', [
@@ -79,7 +100,6 @@ class AuthController extends BaseController
 
         $user = $this->auth->attempt((string) $data['email'], (string) $data['password']);
         if (!$user) {
-            $site = $this->panel->adminSiteSettings();
             return $this->render('auth/login', [
                 'pageTitle'    => '登录 ' . $this->settings->appName(),
                 'loginNotice'  => $site['login_notice'],
@@ -122,12 +142,17 @@ class AuthController extends BaseController
         }
 
         $data = $this->request->only(['email', 'nickname', 'password', 'password_confirm', 'verification_code', 'captcha']);
-        $this->validate($data, [
-            'email'            => 'require|email',
-            'nickname'         => 'require|min:2|max:60',
-            'password'         => 'require|min:8|max:128',
-            'password_confirm' => 'require|min:8|max:128',
-        ]);
+
+        try {
+            $this->validate($data, [
+                'email'            => 'require|email',
+                'nickname'         => 'require|min:2|max:60',
+                'password'         => 'require|min:6|max:128',
+                'password_confirm' => 'require|min:6|max:128',
+            ]);
+        } catch (\think\exception\ValidateException $e) {
+            return $this->jsonError($e->getMessage(), 422);
+        }
 
         if ((string) $data['password'] !== (string) $data['password_confirm']) {
             return $this->jsonError('两次输入的密码不一致。', 422);
@@ -168,7 +193,7 @@ class AuthController extends BaseController
 
         $payload = $this->auth->attempt($email, (string) $data['password']);
         if ($payload) {
-            return $this->redirectTo('/dashboard');
+            return $this->jsonSuccess('注册成功。', ['redirect' => '/dashboard', 'user_id' => $user->id]);
         }
 
         return $this->jsonSuccess('注册成功。', ['user_id' => $user->id]);
@@ -186,21 +211,27 @@ class AuthController extends BaseController
         $settings = $this->authSettings();
 
         $data = $this->request->only(['email', 'verification_code', 'captcha', 'new_password', 'confirm_password']);
-        $this->validate($data, [
-            'email'            => 'require|email',
-            'new_password'     => 'require|min:8|max:128',
-            'confirm_password' => 'require|min:8|max:128',
-        ]);
+
+        try {
+            $this->validate($data, [
+                'email'            => 'require|email',
+                'new_password'     => 'require|min:6|max:128',
+                'confirm_password' => 'require|min:6|max:128',
+            ]);
+        } catch (\think\exception\ValidateException $e) {
+            return $this->jsonError($e->getMessage(), 422);
+        }
 
         if ((string) $data['new_password'] !== (string) $data['confirm_password']) {
             return $this->jsonError('两次输入的新密码不一致。', 422);
         }
 
-        if ($settings['require_email_verification'] && trim((string) ($data['verification_code'] ?? '')) === '') {
-            return $this->jsonError('当前找回密码需要邮箱验证码。', 422);
+        // 忘记密码必须验证邮箱验证码
+        if (trim((string) ($data['verification_code'] ?? '')) === '') {
+            return $this->jsonError('请输入邮箱验证码。', 422);
         }
 
-        if ($settings['require_email_verification'] && !$this->verifyService()->verify((string) $data['email'], 'forgot_password', (string) $data['verification_code'])) {
+        if (!$this->verifyService()->verify((string) $data['email'], 'forgot_password', (string) $data['verification_code'])) {
             return $this->jsonError('邮箱验证码无效或已过期。', 422);
         }
 
@@ -219,6 +250,10 @@ class AuthController extends BaseController
 
         $user->password_hash = password_hash((string) $data['new_password'], PASSWORD_DEFAULT);
         $user->save();
+
+        \app\service\NotificationService::notify((int) $user->id, \app\service\NotificationService::PASSWORD_CHANGED, [
+            '修改时间' => date('Y-m-d H:i:s'), '操作' => '忘记密码重置',
+        ]);
 
         return $this->jsonSuccess('密码已重置，请重新登录。');
     }

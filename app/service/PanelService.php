@@ -479,8 +479,10 @@ class PanelService
             'id' => $u->id, 'email' => $u->email, 'name' => $u->nickname ?: $u->email,
             'role' => (int) $u->role === 1 ? '管理员' : '用户', 'role_key' => (int) $u->role,
             'status' => (int) $u->status === 1 ? '正常' : '禁用', 'status_key' => (int) $u->status,
+            'enabled' => (int) $u->status === 1,
             'balance' => $this->money((float) $u->balance), 'created_at' => (string) $u->created_at,
             'level' => $u->userLevel?->name ?? '普通用户',
+            'tickets' => Ticket::where('user_id', $u->id)->count(),
         ])->all();
     }
 

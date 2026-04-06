@@ -373,8 +373,7 @@ class StatisticsService
         $skip = ($page - 1) * $limit;
         $total = AuditLog::count();
         $items = AuditLog::order('created_at', 'desc')
-            ->limit($limit)
-            ->offset($skip)
+            ->limit($skip, $limit)
             ->select()
             ->toArray();
 

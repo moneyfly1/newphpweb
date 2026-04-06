@@ -63,6 +63,7 @@ Route::group('/admin', function (): void {
     Route::get('/logins', [AdminSettingsController::class, 'loginSecurity']);
     Route::get('/batch-export', [AdminSettingsController::class, 'batchExport']);
     Route::get('/payment-gateway-config', [AdminSettingsController::class, 'paymentGatewayConfig']);
+    Route::get('/payment-config', [AdminSettingsController::class, 'paymentGatewayConfig']);
     Route::get('/nodes/manage', [AdminSettingsController::class, 'nodeManagement']);
     Route::get('/sources/manage', [AdminSettingsController::class, 'sourceManagement']);
     Route::get('/settings', [AdminSettingsController::class, 'index']);

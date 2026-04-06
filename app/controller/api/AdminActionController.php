@@ -109,6 +109,12 @@ class AdminActionController extends BaseController
             foreach ($ids as $id) {
                 if ($action === 'extend30') {
                     $this->panel->extendSubscription((int) $id, 30);
+                } elseif ($action === 'extend180') {
+                    $this->panel->extendSubscription((int) $id, 180);
+                } elseif ($action === 'extend365') {
+                    $this->panel->extendSubscription((int) $id, 365);
+                } elseif ($action === 'extend730') {
+                    $this->panel->extendSubscription((int) $id, 730);
                 } elseif ($action === 'reset') {
                     $this->panel->resetSubscriptionByAdmin((int) $id);
                 } elseif ($action === 'clear') {

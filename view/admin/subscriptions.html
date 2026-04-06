@@ -4,32 +4,32 @@
 <section class="stats-grid">
     <article class="panel-card stat-card">
         <span>订阅总数</span>
-        <strong>{count($subscriptions)}</strong>
+        <strong>{:count($subscriptions)}</strong>
         <p>当前筛选结果</p>
     </article>
     <article class="panel-card stat-card">
         <span>活跃订阅</span>
-        <strong>{php}echo count(array_filter($subscriptions, fn($item) => strtotime($item['expire_at']) > time() && $item['status'] !== 'disabled'));{/php}</strong>
+        <strong>{php}echo count(array_filter($subscriptions, fn($item) => strtotime($item['expire_at'] ?? '') > time() && ($item['status'] ?? '') !== 'disabled'));{/php}</strong>
         <p>可正常使用</p>
     </article>
     <article class="panel-card stat-card">
         <span>即将过期</span>
-        <strong>{php}$now = time(); echo count(array_filter($subscriptions, fn($item) => strtotime($item['expire_at']) > $now && strtotime($item['expire_at']) < $now + 7*86400));{/php}</strong>
+        <strong>{php}$now = time(); echo count(array_filter($subscriptions, fn($item) => strtotime($item['expire_at'] ?? '') > $now && strtotime($item['expire_at'] ?? '') < $now + 7*86400));{/php}</strong>
         <p>7天内过期</p>
     </article>
     <article class="panel-card stat-card">
         <span>已过期</span>
-        <strong>{php}echo count(array_filter($subscriptions, fn($item) => strtotime($item['expire_at']) < time()));{/php}</strong>
+        <strong>{php}echo count(array_filter($subscriptions, fn($item) => strtotime($item['expire_at'] ?? '') < time()));{/php}</strong>
         <p>需要续期</p>
     </article>
     <article class="panel-card stat-card">
         <span>设备超限</span>
-        <strong>{php}echo count(array_filter($subscriptions, fn($item) => $item['used_devices'] > $item['device_limit']));{/php}</strong>
+        <strong>{php}echo count(array_filter($subscriptions, fn($item) => ($item['used_devices'] ?? 0) > ($item['device_limit'] ?? 0)));{/php}</strong>
         <p>异常订阅</p>
     </article>
     <article class="panel-card stat-card">
         <span>已禁用</span>
-        <strong>{php}echo count(array_filter($subscriptions, fn($item) => $item['status'] === 'disabled'));{/php}</strong>
+        <strong>{php}echo count(array_filter($subscriptions, fn($item) => ($item['status'] ?? '') === 'disabled'));{/php}</strong>
         <p>已手动停用</p>
     </article>
 </section>
@@ -241,8 +241,7 @@ document.getElementById('btn-export')?.addEventListener('click', async () => {
     });
 
     try {
-        const response = await fetch('/admin/api/export?' + params.toString());
-        const data = await response.json();
+        const data = await request('/admin/api/export?' + params.toString(), { method: 'GET' });
         const csv = data.data.content;
         const filename = data.data.filename;
         const blob = new Blob([csv], { type: 'text/csv; charset=utf-8;' });
@@ -253,9 +252,9 @@ document.getElementById('btn-export')?.addEventListener('click', async () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        alert('已导出 ' + filename);
+        toast('已导出 ' + filename);
     } catch (error) {
-        alert('导出失败: ' + (error.message || '未知错误'));
+        toast('导出失败: ' + (error.message || '未知错误'), 'error');
     }
 });
 
@@ -288,18 +287,15 @@ document.querySelectorAll('[data-subscription-device-save]').forEach((button) =>
         const subscriptionId = button.dataset.subscriptionDeviceSave;
         const input = document.querySelector(`[data-subscription-device-input="${subscriptionId}"]`);
         if (!input) return;
-        
+
         button.disabled = true;
         input.classList.add('saving');
-        
+
         try {
-            const response = await fetch(`/admin/api/subscriptions/${subscriptionId}/device-limit`, {
+            await request(`/admin/api/subscriptions/${subscriptionId}/device-limit`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ device_limit: Number(input.value || 0) })
+                body: { device_limit: Number(input.value || 0) }
             });
-            
-            if (!response.ok) throw new Error('保存失败');
             input.classList.remove('saving');
             input.classList.add('saved');
             setTimeout(() => {
@@ -308,7 +304,7 @@ document.querySelectorAll('[data-subscription-device-save]').forEach((button) =>
             }, 1500);
         } catch (error) {
             input.classList.remove('saving');
-            alert('设备限制更新失败: ' + (error.message || '未知错误'));
+            toast('设备限制更新失败: ' + (error.message || '未知错误'), 'error');
         } finally {
             button.disabled = false;
         }
@@ -320,24 +316,21 @@ document.querySelectorAll('[data-admin-subscription-extend]').forEach((button) =
     button.addEventListener('click', async () => {
         const subscriptionId = button.dataset.adminSubscriptionExtend;
         const days = Number(button.dataset.days || 0);
-        
+
         if (!confirm(`确认延期 ${days} 天吗？`)) return;
-        
+
         button.disabled = true;
         button.textContent = button.dataset.loadingText || '处理中...';
-        
+
         try {
-            const response = await fetch(`/admin/api/subscriptions/${subscriptionId}/extend`, {
+            await request(`/admin/api/subscriptions/${subscriptionId}/extend`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ days: days })
+                body: { days: days }
             });
-            
-            if (!response.ok) throw new Error('延期失败');
-            alert('订阅已延期 ' + days + ' 天');
+            toast('订阅已延期 ' + days + ' 天');
             window.location.reload();
         } catch (error) {
-            alert('订阅延期失败: ' + (error.message || '未知错误'));
+            toast('订阅延期失败: ' + (error.message || '未知错误'), 'error');
             button.disabled = false;
             button.textContent = '+' + days + '天';
         }
@@ -350,21 +343,18 @@ document.querySelectorAll('[data-subscription-expire-save]').forEach((button) =>
         const subscriptionId = button.dataset.subscriptionExpireSave;
         const input = document.querySelector(`[data-subscription-expire-input="${subscriptionId}"]`);
         if (!input || !input.value) {
-            alert('请选择到期时间。');
+            toast('请选择到期时间。', 'error');
             return;
         }
-        
+
         button.disabled = true;
         input.classList.add('saving');
-        
+
         try {
-            const response = await fetch(`/admin/api/subscriptions/${subscriptionId}/expire-at`, {
+            await request(`/admin/api/subscriptions/${subscriptionId}/expire-at`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ expire_at: input.value.replace('T', ' ') + ':00' })
+                body: { expire_at: input.value.replace('T', ' ') + ':00' }
             });
-            
-            if (!response.ok) throw new Error('保存失败');
             input.classList.remove('saving');
             input.classList.add('saved');
             setTimeout(() => {
@@ -373,7 +363,7 @@ document.querySelectorAll('[data-subscription-expire-save]').forEach((button) =>
             }, 1500);
         } catch (error) {
             input.classList.remove('saving');
-            alert('到期时间更新失败: ' + (error.message || '未知错误'));
+            toast('到期时间更新失败: ' + (error.message || '未知错误'), 'error');
         } finally {
             button.disabled = false;
         }
@@ -416,11 +406,17 @@ document.querySelectorAll('[data-copy]').forEach((button) => {
     });
 });
 
-// 订阅详情按钮
+// 订阅详情
+const _allSubs = {php}echo json_encode($subscriptions ?? [], JSON_UNESCAPED_UNICODE);{/php};
 document.querySelectorAll('[data-subscription-detail-id]').forEach(btn => {
     btn.addEventListener('click', () => {
-        const subscriptionId = btn.dataset.subscriptionDetailId;
-        alert('订阅详情页面功能开发中，订阅ID: ' + subscriptionId);
+        const sub = _allSubs.find(s => String(s.id) === btn.dataset.subscriptionDetailId);
+        if (!sub) return;
+        const d = document.createElement('div');
+        d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center';
+        d.innerHTML=`<div style="background:#fff;border-radius:12px;padding:24px 28px;max-width:520px;width:92%;box-shadow:0 8px 32px rgba(0,0,0,.18)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="margin:0;font-size:17px">订阅详情 #${sub.id}</h3><span onclick="this.closest('div[style*=fixed]').remove()" style="cursor:pointer;font-size:20px">&times;</span></div><table style="width:100%;border-collapse:collapse;font-size:14px"><tr><td style="padding:7px 8px;border-bottom:1px solid #f0f0f0;color:#999;width:80px">用户</td><td style="padding:7px 8px;border-bottom:1px solid #f0f0f0">${sub.user} <small style="color:#aaa">${sub.user_email||''}</small></td></tr><tr><td style="padding:7px 8px;border-bottom:1px solid #f0f0f0;color:#999">套餐</td><td style="padding:7px 8px;border-bottom:1px solid #f0f0f0">${sub.package}</td></tr><tr><td style="padding:7px 8px;border-bottom:1px solid #f0f0f0;color:#999">状态</td><td style="padding:7px 8px;border-bottom:1px solid #f0f0f0"><b style="color:${sub.status==='active'?'#43a047':'#e53935'}">${sub.status==='active'?'活跃':'已过期'}</b></td></tr><tr><td style="padding:7px 8px;border-bottom:1px solid #f0f0f0;color:#999">设备</td><td style="padding:7px 8px;border-bottom:1px solid #f0f0f0">${sub.used_devices} / ${sub.device_limit}</td></tr><tr><td style="padding:7px 8px;border-bottom:1px solid #f0f0f0;color:#999">流量</td><td style="padding:7px 8px;border-bottom:1px solid #f0f0f0">${sub.traffic}</td></tr><tr><td style="padding:7px 8px;border-bottom:1px solid #f0f0f0;color:#999">到期</td><td style="padding:7px 8px;border-bottom:1px solid #f0f0f0">${sub.expire_at}</td></tr><tr><td style="padding:7px 8px;border-bottom:1px solid #f0f0f0;color:#999">通用链接</td><td style="padding:7px 8px;border-bottom:1px solid #f0f0f0;word-break:break-all;font-size:12px">${sub.universal_url||'未配置'}</td></tr><tr><td style="padding:7px 8px;color:#999">Clash</td><td style="padding:7px 8px;word-break:break-all;font-size:12px">${sub.clash_url||'未配置'}</td></tr></table><div style="margin-top:14px;text-align:right"><button onclick="navigator.clipboard.writeText('${sub.universal_url||''}').then(()=>this.textContent='已复制')" style="padding:5px 14px;border:1px solid #667eea;color:#667eea;background:#fff;border-radius:6px;cursor:pointer;margin-right:6px">复制链接</button><button onclick="this.closest('div[style*=fixed]').remove()" style="padding:5px 14px;border:none;background:#667eea;color:#fff;border-radius:6px;cursor:pointer">关闭</button></div></div>`;
+        document.body.appendChild(d);
+        d.addEventListener('click',e=>{if(e.target===d)d.remove()});
     });
 });
 </script>

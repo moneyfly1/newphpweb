@@ -1,0 +1,193 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="panel-card">
+    <div class="section-head">
+        <div>
+            <span class="eyebrow">账户管理</span>
+            <h3>账户充值</h3>
+            <p class="topbar-copy">选择充值金额和支付方式，快速为账户添加余额。</p>
+        </div>
+    </div>
+</section>
+
+<section class="content-grid two-column">
+    <article class="panel-card">
+        <span class="eyebrow">选择金额</span>
+        <h3>快速充值</h3>
+        <div class="shortcut-grid">
+            {foreach name="recharge_amounts" item="amount"}
+            <button class="shortcut-card quick-amount" data-amount="{$amount}">
+                <strong class="panel-emphasis">¥{$amount}</strong>
+            </button>
+            {/foreach}
+        </div>
+
+        <label class="field" style="margin-top: 1.2rem;">
+            <span>自定义金额</span>
+            <div class="inline-field">
+                <input type="number" id="custom-amount" placeholder="输入自定义金额" min="1" max="99999" step="1">
+                <button id="btn-custom-amount" class="button button-ghost">选择</button>
+            </div>
+        </label>
+
+        <div class="panel-card panel-card-compact" style="margin-top: 1.2rem; text-align: center;">
+            <span class="eyebrow">充值金额</span>
+            <strong class="panel-emphasis" style="font-size: 2rem;">¥<span id="amount-display">0.00</span></strong>
+        </div>
+    </article>
+
+    <article class="panel-card">
+        <span class="eyebrow">支付方式</span>
+        <h3>选择支付方式</h3>
+        <div id="payment-methods-container" class="format-list">
+            <div class="loading">加载中...</div>
+        </div>
+
+        <button id="btn-proceed-payment" class="button button-primary button-block" disabled style="margin-top: 1.2rem;">
+            确认支付
+        </button>
+    </article>
+</section>
+
+<section class="panel-card">
+    <span class="eyebrow">充值记录</span>
+    <h3>充值历史</h3>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>时间</th>
+                    <th>金额</th>
+                    <th>方式</th>
+                    <th>状态</th>
+                </tr>
+            </thead>
+            <tbody id="history-tbody">
+                <tr><td colspan="4" class="loading">加载中...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<script>
+const PREDEFINED_AMOUNTS = [50, 100, 300, 500, 1000];
+let selectedAmount = 0;
+let selectedMethod = '';
+
+(async () => {
+    await loadPaymentMethods();
+    await loadRechargeHistory();
+})();
+
+async function loadPaymentMethods() {
+    try {
+        const response = await request('/api/payment-methods', { method: 'GET' });
+        const methods = response.data || [];
+        const container = document.getElementById('payment-methods-container');
+        if (!methods.length) {
+            container.innerHTML = '<div class="loading">暂无可用支付方式</div>';
+            return;
+        }
+        container.innerHTML = methods.map(method => `
+            <label class="format-card">
+                <input type="radio" name="payment_method" value="${method.code}" class="hidden-radio">
+                <div>
+                    <strong>${method.label || method.code}</strong>
+                    <p class="topbar-copy">${method.hint || ''}</p>
+                </div>
+            </label>
+        `).join('');
+        container.querySelectorAll('input[name="payment_method"]').forEach(input => {
+            input.addEventListener('change', () => {
+                selectedMethod = input.value;
+                container.querySelectorAll('.format-card').forEach(card => {
+                    card.classList.toggle('is-selected', card.contains(input));
+                });
+                updatePayButton();
+            });
+        });
+    } catch (error) {
+        document.getElementById('payment-methods-container').innerHTML = '<div class="loading">加载支付方式失败</div>';
+    }
+}
+
+async function loadRechargeHistory() {
+    try {
+        const response = await request('/api/recharge-history', { method: 'GET' });
+        const items = response.data?.data || [];
+        const tbody = document.getElementById('history-tbody');
+        tbody.innerHTML = items.length ? items.map(item => `
+            <tr>
+                <td>${item.paid_at || item.created_at || '-'}</td>
+                <td>¥${Number(item.amount || 0).toFixed(2)}</td>
+                <td>${item.payment_method || '-'}</td>
+                <td><span class="chip">${item.status || '-'}</span></td>
+            </tr>
+        `).join('') : '<tr><td colspan="4" class="loading">暂无充值记录</td></tr>';
+    } catch (error) {
+        document.getElementById('history-tbody').innerHTML = '<tr><td colspan="4" class="loading">加载失败</td></tr>';
+    }
+}
+
+document.querySelectorAll('.quick-amount').forEach(btn => {
+    btn.addEventListener('click', () => {
+        selectAmount(parseInt(btn.dataset.amount));
+        document.querySelectorAll('.quick-amount').forEach(b => b.classList.remove('is-selected'));
+        btn.classList.add('is-selected');
+    });
+});
+
+document.getElementById('btn-custom-amount')?.addEventListener('click', () => {
+    const amount = parseFloat(document.getElementById('custom-amount').value);
+    if (amount > 0) {
+        selectAmount(amount);
+        document.querySelectorAll('.quick-amount').forEach(b => b.classList.remove('is-selected'));
+    } else {
+        toast('请输入有效的金额', 'warning');
+    }
+});
+
+function selectAmount(amount) {
+    selectedAmount = amount;
+    document.getElementById('amount-display').textContent = amount.toFixed(2);
+    updatePayButton();
+}
+
+function updatePayButton() {
+    document.getElementById('btn-proceed-payment').disabled = !(selectedAmount > 0 && selectedMethod);
+}
+
+document.getElementById('btn-proceed-payment')?.addEventListener('click', async () => {
+    if (selectedAmount <= 0 || !selectedMethod) {
+        toast('请选择金额和支付方式', 'warning');
+        return;
+    }
+
+    const btn = document.getElementById('btn-proceed-payment');
+    setLoadingState(btn, true);
+    try {
+        const response = await request('/api/recharge', {
+            method: 'POST',
+            body: { amount: selectedAmount, payment_method: selectedMethod }
+        });
+
+        if (selectedMethod === 'alipay' && response.data.payment_url) {
+            window.open(response.data.payment_url, '_blank');
+            toast('请在新窗口完成支付', 'info');
+        } else if (selectedMethod === 'balance') {
+            toast('充值成功', 'success');
+            window.setTimeout(() => window.location.reload(), 600);
+        } else {
+            toast('充值订单已创建', 'success');
+        }
+
+        loadRechargeHistory();
+    } catch (error) {
+        toast(error.message, 'error');
+    } finally {
+        setLoadingState(btn, false);
+    }
+});
+</script>
+{/block}

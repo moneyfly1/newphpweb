@@ -1,0 +1,200 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="stats-grid">
+    <article class="panel-card stat-card"><span>总节点数</span><strong id="node-total">-</strong><p>节点总量</p></article>
+    <article class="panel-card stat-card"><span>已激活</span><strong id="node-active">-</strong><p>当前启用节点</p></article>
+    <article class="panel-card stat-card"><span>已禁用</span><strong id="node-disabled">-</strong><p>当前禁用节点</p></article>
+    <article class="panel-card stat-card"><span>平均延迟</span><strong id="node-latency">-</strong><p>节点平均延迟</p></article>
+</section>
+
+<section class="panel-card list-filter-panel">
+    <div class="section-head">
+        <div>
+            <span class="eyebrow">节点控制台</span>
+            <h3>搜索、编辑与批量导入</h3>
+        </div>
+        <div class="button-row">
+            <button id="node-refresh" class="button button-ghost">刷新</button>
+            <button id="node-add" class="button button-primary">新增节点</button>
+            <button id="node-import" class="button">批量导入</button>
+            <button id="node-batch-delete" class="button button-danger">批量删除</button>
+        </div>
+    </div>
+    <div class="list-filter-grid">
+        <label class="field"><span>关键词</span><input type="text" id="node-search" placeholder="节点名称 / 服务器"></label>
+        <label class="field"><span>协议</span><select id="node-protocol"><option value="">全部</option><option value="vmess">VMess</option><option value="vless">VLESS</option><option value="ss">SS</option><option value="ssr">SSR</option><option value="trojan">Trojan</option></select></label>
+        <label class="field"><span>激活状态</span><select id="node-active-filter"><option value="">全部</option><option value="1">已激活</option><option value="0">已禁用</option></select></label>
+    </div>
+</section>
+
+<section class="panel-card">
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="node-select-all"></th>
+                    <th>ID</th>
+                    <th>名称</th>
+                    <th>协议</th>
+                    <th>服务器</th>
+                    <th>端口</th>
+                    <th>状态</th>
+                    <th>延迟</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="node-table-body">
+                <tr><td colspan="8" class="loading">加载中...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<script>
+async function loadNodes() {
+    try {
+        const params = new URLSearchParams({
+            page: '1',
+            limit: '50',
+            search: document.getElementById('node-search')?.value || '',
+            protocol: document.getElementById('node-protocol')?.value || '',
+            is_active: document.getElementById('node-active-filter')?.value || ''
+        });
+        const response = await request('/admin/api/nodes/all?' + params.toString(), { method: 'GET' });
+        const items = response.data.items || [];
+        document.getElementById('node-table-body').innerHTML = items.length ? items.map(row => `
+            <tr>
+                <td><input type="checkbox" class="node-select" value="${row.id}"></td>
+                <td>${row.id}</td>
+                <td>${row.name}</td>
+                <td>${(row.protocol || '').toUpperCase()}</td>
+                <td>${row.server}</td>
+                <td>${row.port}</td>
+                <td><span class="chip">${row.is_active ? '启用' : '禁用'}</span></td>
+                <td>${row.latency_ms ? row.latency_ms + 'ms' : '-'}</td>
+                <td>
+                    <div class="button-row compact-action-row">
+                        <button class="button button-ghost button-small" type="button" onclick="editNode(${row.id}, '${(row.name || '').replace(/'/g, "&#39;")}', '${(row.server || '').replace(/'/g, "&#39;")}', ${row.port || 0})">编辑</button>
+                        <button class="button button-secondary button-small" type="button" onclick="viewNodeDetail(${row.id}, '${(row.name || '').replace(/'/g, "&#39;")}', '${(row.server || '').replace(/'/g, "&#39;")}', '${(row.protocol || '').toUpperCase()}', ${row.port || 0}, ${row.latency_ms || 0}, ${row.is_active ? 1 : 0})">详情</button>
+                        <button class="button button-ghost button-small" type="button" onclick="deleteNode(${row.id})">删除</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('') : '<tr><td colspan="8" class="loading">暂无数据</td></tr>';
+
+        document.getElementById('node-total').textContent = items.length;
+        document.getElementById('node-active').textContent = items.filter(i => i.is_active).length;
+        document.getElementById('node-disabled').textContent = items.filter(i => !i.is_active).length;
+        const latencies = items.filter(i => i.latency_ms).map(i => i.latency_ms);
+        document.getElementById('node-latency').textContent = latencies.length ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length) + 'ms' : '-';
+    } catch (error) {
+        toast(error.message || '加载节点失败', 'error');
+    }
+}
+
+function viewNodeDetail(id, name, server, protocol, port, latency, active) {
+    modalMgr.show('节点详情', [
+        { key: 'id', label: '节点ID', value: id, type: 'text' },
+        { key: 'name', label: '节点名称', value: name || '', type: 'text' },
+        { key: 'server', label: '服务器', value: server || '', type: 'text' },
+        { key: 'protocol', label: '协议', value: protocol || '', type: 'text' },
+        { key: 'port', label: '端口', value: port || '', type: 'text' },
+        { key: 'latency', label: '延迟', value: latency ? latency + 'ms' : '-', type: 'text' },
+        { key: 'status', label: '状态', value: active ? '启用' : '禁用', type: 'text' },
+    ], () => {});
+}
+
+async function editNode(id, name, server, port) {
+    const nextName = window.prompt('修改节点名称', name || '');
+    if (nextName === null) return;
+    const nextServer = window.prompt('修改服务器地址', server || '');
+    if (nextServer === null) return;
+    const nextPort = window.prompt('修改端口', String(port || ''));
+    if (nextPort === null) return;
+    try {
+        await request('/admin/api/nodes/' + id + '/status', {
+            method: 'POST',
+            body: { name: nextName, server: nextServer, port: nextPort }
+        });
+        toast('节点已更新', 'success');
+        loadNodes();
+    } catch (error) {
+        toast(error.message || '更新失败', 'error');
+    }
+}
+
+async function deleteNode(id) {
+    try {
+        await request('/admin/api/nodes/' + id, { method: 'DELETE', body: {} });
+        toast('节点已删除', 'success');
+        loadNodes();
+    } catch (error) {
+        toast(error.message || '删除失败', 'error');
+    }
+}
+
+async function batchDeleteNodes() {
+    const ids = Array.from(document.querySelectorAll('.node-select:checked')).map(i => Number(i.value));
+    if (!ids.length) {
+        toast('请先选择节点', 'warning');
+        return;
+    }
+    try {
+        await request('/admin/api/nodes/batch-delete', { method: 'POST', body: { ids } });
+        toast('批量删除成功', 'success');
+        loadNodes();
+    } catch (error) {
+        toast(error.message || '批量删除失败', 'error');
+    }
+}
+
+async function importNodes() {
+    const links = window.prompt('请输入节点链接或 Base64 内容（可多行）');
+    if (!links) return;
+    try {
+        await request('/admin/api/nodes/batch-import', { method: 'POST', body: { links } });
+        toast('导入成功', 'success');
+        loadNodes();
+    } catch (error) {
+        toast(error.message || '导入失败', 'error');
+    }
+}
+
+document.getElementById('node-refresh')?.addEventListener('click', loadNodes);
+document.getElementById('node-add')?.addEventListener('click', () => {
+    modalMgr.show('新增节点', [
+        { key: 'name', label: '节点名称', value: '', type: 'text' },
+        { key: 'server', label: '服务器地址', value: '', type: 'text' },
+        { key: 'port', label: '端口', value: '443', type: 'text' },
+        { key: 'protocol', label: '协议', value: 'vless', type: 'select', options: [
+            { value: 'vless', label: 'VLESS' },
+            { value: 'vmess', label: 'VMess' },
+            { value: 'ss', label: 'SS' },
+            { value: 'trojan', label: 'Trojan' },
+            { value: 'ssr', label: 'SSR' },
+        ]},
+    ], async (data) => {
+        try {
+            await request('/admin/api/nodes/batch-import', {
+                method: 'POST',
+                body: { links: `${data.protocol}://manual@${data.server}:${data.port}#${data.name}` }
+            });
+            toast('节点已添加', 'success');
+            loadNodes();
+        } catch (error) {
+            toast(error.message || '添加失败', 'error');
+        }
+    });
+});
+document.getElementById('node-import')?.addEventListener('click', importNodes);
+document.getElementById('node-batch-delete')?.addEventListener('click', batchDeleteNodes);
+document.getElementById('node-search')?.addEventListener('input', loadNodes);
+document.getElementById('node-protocol')?.addEventListener('change', loadNodes);
+document.getElementById('node-active-filter')?.addEventListener('change', loadNodes);
+document.getElementById('node-select-all')?.addEventListener('change', (e) => {
+    document.querySelectorAll('.node-select').forEach(cb => cb.checked = e.target.checked);
+});
+document.addEventListener('DOMContentLoaded', loadNodes);
+</script>
+{/block}

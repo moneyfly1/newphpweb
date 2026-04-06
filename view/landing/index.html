@@ -1,0 +1,521 @@
+{extend name="layout/guest" /}
+
+{block name="title"}{$appName} · 安全稳定的全球加速服务{/block}
+
+{block name="pageStyles"}
+<style>
+/* ── Landing Dark Override ── */
+.guest-body.landing-body {
+    background: #0a0e17;
+    color: #e2e8f0;
+}
+.landing-body .ambient { display: none; }
+.landing-body .guest-header {
+    background: rgba(10,14,23,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    position: sticky; top: 0; z-index: 100;
+    padding: 1rem 2rem;
+    max-width: 100%;
+}
+.landing-body .brand-mark {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    box-shadow: 0 8px 24px rgba(99,102,241,0.3);
+}
+.landing-body .brand-copy strong { color: #f1f5f9; }
+.landing-body .brand-copy em { color: #64748b; }
+.landing-body .button-ghost {
+    background: rgba(99,102,241,0.12);
+    color: #a5b4fc;
+    border-color: rgba(99,102,241,0.3);
+}
+.landing-body .button-ghost:hover {
+    background: rgba(99,102,241,0.22);
+}
+.landing-body .guest-main {
+    max-width: 100%;
+    padding: 0;
+}
+
+/* ── Hero ── */
+.landing-hero {
+    position: relative;
+    min-height: 92vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 6rem 2rem 4rem;
+    overflow: hidden;
+}
+.landing-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(99,102,241,0.15), transparent),
+        radial-gradient(ellipse 60% 50% at 80% 20%, rgba(139,92,246,0.1), transparent),
+        radial-gradient(ellipse 50% 40% at 20% 60%, rgba(6,182,212,0.08), transparent);
+    pointer-events: none;
+}
+.hero-grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 70% 50% at 50% 40%, black, transparent);
+    pointer-events: none;
+}
+.hero-inner {
+    position: relative;
+    z-index: 1;
+    max-width: 800px;
+}
+.hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 1rem;
+    border-radius: 999px;
+    background: rgba(99,102,241,0.12);
+    border: 1px solid rgba(99,102,241,0.25);
+    color: #a5b4fc;
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: 2rem;
+}
+.hero-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 8px #22c55e;
+}
+.hero-inner h1 {
+    font-size: clamp(2.4rem, 5.5vw, 4rem);
+    font-weight: 800;
+    line-height: 1.15;
+    margin: 0 0 1.5rem;
+    background: linear-gradient(135deg, #f1f5f9 0%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-family: "PingFang SC","Noto Sans SC",sans-serif;
+}
+.hero-inner h1 em {
+    font-style: normal;
+    background: linear-gradient(135deg, #818cf8, #c084fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.hero-desc {
+    font-size: 1.15rem;
+    color: #94a3b8;
+    line-height: 1.7;
+    margin: 0 0 2.5rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.hero-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.btn-hero {
+    padding: 0.9rem 2.2rem;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+.btn-hero-primary {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    box-shadow: 0 8px 32px rgba(99,102,241,0.35);
+}
+.btn-hero-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(99,102,241,0.45);
+}
+.btn-hero-outline {
+    background: rgba(255,255,255,0.05);
+    color: #e2e8f0;
+    border: 1px solid rgba(255,255,255,0.12);
+}
+.btn-hero-outline:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.2);
+}
+
+/* ── Stats Bar ── */
+.stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 16px;
+    overflow: hidden;
+    max-width: 900px;
+    margin: -3rem auto 0;
+    position: relative;
+    z-index: 2;
+}
+.stat-item {
+    padding: 1.8rem 1.5rem;
+    text-align: center;
+    background: rgba(15,23,42,0.8);
+    backdrop-filter: blur(12px);
+}
+.stat-num {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #e2e8f0, #a5b4fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.stat-label {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+/* ── PLACEHOLDER_FEATURES ── */
+/* ── Features Section ── */
+.landing-section {
+    padding: 5rem 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+.section-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    background: rgba(99,102,241,0.1);
+    border: 1px solid rgba(99,102,241,0.2);
+    color: #a5b4fc;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+}
+.section-title {
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    font-weight: 800;
+    color: #f1f5f9;
+    margin: 0 0 0.8rem;
+    font-family: "PingFang SC","Noto Sans SC",sans-serif;
+}
+.section-desc {
+    color: #64748b;
+    font-size: 1.05rem;
+    line-height: 1.7;
+    max-width: 560px;
+    margin: 0 0 3rem;
+}
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.2rem;
+}
+.feature-card {
+    padding: 2rem 1.6rem;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    transition: all 0.3s;
+}
+.feature-card:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(99,102,241,0.2);
+    transform: translateY(-4px);
+}
+.feature-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    font-size: 1.4rem;
+    margin-bottom: 1.2rem;
+}
+.fi-purple { background: rgba(99,102,241,0.15); }
+.fi-cyan { background: rgba(6,182,212,0.15); }
+.fi-green { background: rgba(34,197,94,0.15); }
+.fi-orange { background: rgba(249,115,22,0.15); }
+.fi-pink { background: rgba(236,72,153,0.15); }
+.fi-blue { background: rgba(59,130,246,0.15); }
+.feature-card h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin: 0 0 0.6rem;
+}
+.feature-card p {
+    color: #64748b;
+    font-size: 0.92rem;
+    line-height: 1.65;
+    margin: 0;
+}
+
+/* ── Protocol Section ── */
+.protocol-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.2rem;
+    margin-top: 3rem;
+}
+.protocol-card {
+    padding: 1.5rem;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    text-align: center;
+}
+.protocol-name {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #e2e8f0;
+    margin-bottom: 0.4rem;
+}
+.protocol-desc {
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+/* ── Pricing Teaser ── */
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+.price-card {
+    padding: 2rem 1.6rem;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    text-align: center;
+    transition: all 0.3s;
+    position: relative;
+}
+.price-card:hover {
+    border-color: rgba(99,102,241,0.3);
+    transform: translateY(-4px);
+}
+.price-card.is-popular {
+    border-color: rgba(99,102,241,0.4);
+    background: rgba(99,102,241,0.06);
+}
+.popular-tag {
+    position: absolute;
+    top: -0.7rem;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.25rem 1rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+.price-plan {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #e2e8f0;
+    margin-bottom: 1rem;
+}
+.price-amount {
+    font-size: 2.4rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #e2e8f0, #a5b4fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.price-amount span {
+    font-size: 1rem;
+    font-weight: 400;
+    -webkit-text-fill-color: #64748b;
+}
+.price-features {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0;
+    text-align: left;
+}
+.price-features li {
+    padding: 0.45rem 0;
+    color: #94a3b8;
+    font-size: 0.9rem;
+}
+.price-features li::before {
+    content: '✓';
+    color: #22c55e;
+    margin-right: 0.6rem;
+    font-weight: 700;
+}
+
+/* ── CTA Section ── */
+.cta-section {
+    text-align: center;
+    padding: 5rem 2rem 6rem;
+    position: relative;
+}
+.cta-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 60% 50% at 50% 50%, rgba(99,102,241,0.1), transparent);
+    pointer-events: none;
+}
+.cta-section h2 {
+    font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+    font-weight: 800;
+    color: #f1f5f9;
+    margin: 0 0 1rem;
+    position: relative;
+}
+.cta-section p {
+    color: #64748b;
+    font-size: 1.05rem;
+    margin: 0 0 2rem;
+    position: relative;
+}
+.landing-footer {
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 2rem;
+    text-align: center;
+    color: #475569;
+    font-size: 0.85rem;
+}
+@media (max-width: 768px) {
+    .features-grid, .protocol-grid, .pricing-grid { grid-template-columns: 1fr; }
+    .stats-bar { grid-template-columns: repeat(2, 1fr); margin-top: -2rem; }
+    .landing-hero { min-height: 80vh; padding: 4rem 1.2rem 3rem; }
+    .hero-inner h1 { font-size: 2rem; }
+}
+</style>
+{/block}
+
+{block name="content"}
+<script>document.body.classList.add('landing-body');</script>
+
+<section class="landing-hero">
+    <div class="hero-grid-bg"></div>
+    <div class="hero-inner">
+        <div class="hero-badge">全球节点在线运行中</div>
+        <h1>安全稳定的<em>全球加速</em>服务平台</h1>
+        <p class="hero-desc">{$pageBlurb}</p>
+        <div class="hero-buttons">
+            <a class="btn-hero btn-hero-primary" href="/login">立即开始 →</a>
+            <a class="btn-hero btn-hero-outline" href="#features">了解更多</a>
+        </div>
+    </div>
+</section>
+
+<div class="stats-bar">
+    {volist name="heroStats" id="item"}
+    <div class="stat-item">
+        <span class="stat-num">{$item.value}</span>
+        <span class="stat-label">{$item.label}</span>
+    </div>
+    {/volist}
+    <div class="stat-item">
+        <span class="stat-num">99.9%</span>
+        <span class="stat-label">服务可用率</span>
+    </div>
+</div>
+
+<!-- PLACEHOLDER_HTML_PART2 -->
+
+<section class="landing-section" id="features">
+    <span class="section-label">核心优势</span>
+    <h2 class="section-title">为什么选择我们</h2>
+    <p class="section-desc">专业的技术团队，优质的线路资源，为您提供稳定高速的全球加速服务。</p>
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="feature-icon fi-purple">🌍</div>
+            <h3>全球节点覆盖</h3>
+            <p>香港、日本、新加坡、美国、台湾等热门地区，精选优质线路。</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon fi-cyan">⚡</div>
+            <h3>高速低延迟</h3>
+            <p>IPLC/IEPL 专线接入，游戏、流媒体、办公全场景流畅体验。</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon fi-green">🔒</div>
+            <h3>安全加密</h3>
+            <p>TLS 加密传输，支持多种主流协议，保障您的隐私安全。</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon fi-orange">📱</div>
+            <h3>多端支持</h3>
+            <p>Clash / V2Ray / Shadowrocket 一键导入，全平台覆盖。</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon fi-pink">💎</div>
+            <h3>灵活套餐</h3>
+            <p>月付、季付、年付多种方案，按需选择，随时升级。</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon fi-blue">🛠</div>
+            <h3>专业支持</h3>
+            <p>在线工单系统，技术问题快速响应，7×24 小时服务。</p>
+        </div>
+    </div>
+</section>
+
+<!-- PLACEHOLDER_HTML_PART3 -->
+
+<section class="landing-section">
+    <span class="section-label">协议支持</span>
+    <h2 class="section-title">主流协议全覆盖</h2>
+    <p class="section-desc">支持多种安全协议，满足不同场景需求。</p>
+    <div class="protocol-grid">
+        <div class="protocol-card">
+            <div class="protocol-name">VLESS</div>
+            <div class="protocol-desc">新一代轻量协议，性能卓越</div>
+        </div>
+        <div class="protocol-card">
+            <div class="protocol-name">VMess</div>
+            <div class="protocol-desc">经典协议，兼容性强</div>
+        </div>
+        <div class="protocol-card">
+            <div class="protocol-name">Trojan</div>
+            <div class="protocol-desc">伪装 HTTPS 流量，稳定可靠</div>
+        </div>
+    </div>
+</section>
+
+<section class="cta-section">
+    <h2>准备好开始了吗？</h2>
+    <p>注册即可体验全球加速服务，多种套餐灵活选择。</p>
+    <a class="btn-hero btn-hero-primary" href="/login">免费注册 →</a>
+</section>
+
+{if condition="$siteNotice"}
+<section style="max-width:800px;margin:0 auto;padding:0 2rem 2rem;text-align:center;">
+    <p style="color:#64748b;font-size:0.9rem;">{$siteNotice}</p>
+</section>
+{/if}
+
+<footer class="landing-footer">
+    &copy; {:date('Y')} {$appName} · All rights reserved
+</footer>
+{/block}

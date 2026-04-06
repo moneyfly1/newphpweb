@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{$csrfToken}">
+    <title>{block name="title"}{$pageTitle} · {$appName}{/block}</title>
+    <link rel="stylesheet" href="/static/css/app.css?v={:filemtime(public_path().'static/css/app.css')}">
+</head>
+<body class="app-body">
+<div class="app-shell" data-shell data-role="{$currentUser.role}">
+    <div class="sidebar-backdrop" data-nav-close></div>
+    <aside class="sidebar" data-sidebar>
+        <a class="brand brand-sidebar" href="{if condition="$currentUser.role == 'admin'"}/admin/dashboard{else /}/dashboard{/if}">
+            <span class="brand-mark">CB</span>
+            <span class="brand-copy">
+                <strong>{$appName}</strong>
+                <em>{if condition="$currentUser.role == 'admin'"}Admin Portal{else /}User Portal{/if}</em>
+            </span>
+        </a>
+
+        <section class="profile-panel">
+            <div class="profile-avatar">{$currentUser.avatar}</div>
+            <div class="profile-copy">
+                <strong>{$currentUser.name}</strong>
+                <span>{$currentUser.headline}</span>
+            </div>
+        </section>
+
+        {if condition="$currentUser.role == 'user' && $userOverview"}
+        <section class="panel-card panel-card-compact sidebar-overview-card">
+            <span class="eyebrow">账户概览</span>
+            <strong class="panel-emphasis">{$userOverview.balance_label}</strong>
+            <p>{$userOverview.plan_name} · {$userOverview.plan_badge}</p>
+            <small>到期时间 {$userOverview.expire_at}</small>
+        </section>
+        {/if}
+
+        <nav class="sidebar-nav">
+            {if condition="$currentUser.role == 'user'"}
+            <div class="nav-group is-static">
+                <span class="nav-section">用户端</span>
+                <div class="nav-group-links">
+                    <a class="nav-link {if condition="$navKey == 'dashboard'"}is-active{/if}" href="/dashboard">仪表盘</a>
+                    <a class="nav-link {if condition="$navKey == 'shop'"}is-active{/if}" href="/shop">套餐商店</a>
+                    <a class="nav-link {if condition="$navKey == 'purchase'"}is-active{/if}" href="/purchase">购买套餐</a>
+                    <a class="nav-link {if condition="$navKey == 'recharge'"}is-active{/if}" href="/recharge">账户充值</a>
+                    <a class="nav-link {if condition="$navKey == 'orders'"}is-active{/if}" href="/orders">订单管理</a>
+                    <a class="nav-link {if condition="$navKey == 'subscriptions'"}is-active{/if}" href="/subscriptions">订阅管理</a>
+                    <a class="nav-link {if condition="$navKey == 'tickets'"}is-active{/if}" href="/tickets">工单系统</a>
+                    <a class="nav-link {if condition="$navKey == 'settings'"}is-active{/if}" href="/settings">用户设置</a>
+                    <a class="nav-link {if condition="$navKey == 'invite'"}is-active{/if}" href="/invite">邀请返利</a>
+                    <a class="nav-link {if condition="$navKey == 'help'"}is-active{/if}" href="/help">帮助中心</a>
+                    <a class="nav-link {if condition="$navKey == 'knowledge'"}is-active{/if}" href="/knowledge">知识库</a>
+                    <a class="nav-link {if condition="$navKey == 'nodes'"}is-active{/if}" href="/nodes">节点中心</a>
+                </div>
+            </div>
+            {else /}
+            <section class="nav-group" data-nav-group data-group-key="overview">
+                <button class="nav-group-toggle" type="button" data-nav-group-toggle aria-expanded="true">
+                    <span class="nav-section">总览</span>
+                    <span class="nav-group-arrow">⌄</span>
+                </button>
+                <div class="nav-group-links">
+                    <a class="nav-link {if condition="$navKey == 'admin-dashboard'"}is-active{/if}" href="/admin/dashboard">仪表盘</a>
+                    <a class="nav-link {if condition="$navKey == 'admin-statistics'"}is-active{/if}" href="/admin/statistics">统计分析</a>
+                </div>
+            </section>
+
+            <section class="nav-group" data-nav-group data-group-key="business">
+                <button class="nav-group-toggle" type="button" data-nav-group-toggle aria-expanded="true">
+                    <span class="nav-section">用户与业务</span>
+                    <span class="nav-group-arrow">⌄</span>
+                </button>
+                <div class="nav-group-links">
+                    <a class="nav-link {if condition="$navKey == 'admin-users'"}is-active{/if}" href="/admin/users">用户管理</a>
+                    <a class="nav-link {if condition="$navKey == 'admin-packages'"}is-active{/if}" href="/admin/packages">套餐管理</a>
+                    <a class="nav-link {if condition="$navKey == 'admin-orders'"}is-active{/if}" href="/admin/orders">订单管理</a>
+                    <a class="nav-link {if condition="$navKey == 'admin-subscriptions'"}is-active{/if}" href="/admin/subscriptions">订阅管理</a>
+                    <a class="nav-link {if condition="$navKey == 'admin-coupons'"}is-active{/if}" href="/admin/coupons">优惠券管理</a>
+                    <a class="nav-link {if condition="$navKey == 'admin-tickets'"}is-active{/if}" href="/admin/tickets">工单中心</a>
+                </div>
+            </section>
+
+            <section class="nav-group" data-nav-group data-group-key="payment">
+                <button class="nav-group-toggle" type="button" data-nav-group-toggle aria-expanded="true">
+                    <span class="nav-section">支付</span>
+                    <span class="nav-group-arrow">⌄</span>
+                </button>
+                <div class="nav-group-links">
+                    <a class="nav-link {if condition="$navKey == 'admin-payment-config'"}is-active{/if}" href="/admin/payment-config">支付配置</a>
+                    <a class="nav-link {if condition="$navKey == 'admin-payment-gateway-config'"}is-active{/if}" href="/admin/payment-gateway-config">支付网关</a>
+                </div>
+            </section>
+
+            <section class="nav-group" data-nav-group data-group-key="node-source">
+                <button class="nav-group-toggle" type="button" data-nav-group-toggle aria-expanded="true">
+                    <span class="nav-section">节点与采集</span>
+                    <span class="nav-group-arrow">⌄</span>
+                </button>
+                <div class="nav-group-links">
+                    <a class="nav-link {if condition="$navKey == 'admin-node-management'"}is-active{/if}" href="/admin/nodes/manage">节点管理</a>
+                    <a class="nav-link {if condition="$navKey == 'admin-source-management'"}is-active{/if}" href="/admin/sources/manage">采集源管理</a>
+                </div>
+            </section>
+
+            <section class="nav-group" data-nav-group data-group-key="system">
+                <button class="nav-group-toggle" type="button" data-nav-group-toggle aria-expanded="true">
+                    <span class="nav-section">系统</span>
+                    <span class="nav-group-arrow">⌄</span>
+                </button>
+                <div class="nav-group-links">
+                    <a class="nav-link {if condition="$navKey == 'admin-settings'"}is-active{/if}" href="/admin/settings">站点设置</a>
+                    <a class="nav-link {if condition="$navKey == 'admin-advanced-settings'"}is-active{/if}" href="/admin/settings/advanced">高级设置</a>
+                    <a class="nav-link {if condition="$navKey == 'admin-email-queue'"}is-active{/if}" href="/admin/email-queue">邮件队列</a>
+                    <a class="nav-link {if condition="$navKey == 'admin-data-export'"}is-active{/if}" href="/admin/export">数据导出</a>
+                    <a class="nav-link {if condition="$navKey == 'admin-batch-export'"}is-active{/if}" href="/admin/batch-export">批量导出</a>
+                    <a class="nav-link {if condition="$navKey == 'admin-login-security'"}is-active{/if}" href="/admin/logins">登录安全</a>
+                    <a class="nav-link {if condition="$navKey == 'admin-audit-logs'"}is-active{/if}" href="/admin/logs/audit">审计日志</a>
+                </div>
+            </section>
+            {/if}
+        </nav>
+    </aside>
+
+    <main class="main-area">
+        <header class="topbar">
+            <button class="icon-button mobile-only" type="button" data-nav-toggle>菜单</button>
+            <div>
+                <span class="eyebrow">{if condition="$currentUser.role == 'admin'"}运营控制台{else /}账户中心{/if}</span>
+                <h1>{$pageHeadline|default=$pageTitle}</h1>
+                {if condition="$pageBlurb"}
+                <p class="topbar-copy">{$pageBlurb}</p>
+                {/if}
+            </div>
+            <div class="topbar-actions">
+                {if condition="$isShadowSession"}
+                <form method="post" action="/admin/exit-user" id="shadow-exit-form">
+                    <input type="hidden" name="csrf_token" value="{$csrfToken}">
+                    <button class="button button-danger" type="submit">返回管理员后台</button>
+                </form>
+                {/if}
+                <form method="post" action="/logout">
+                    <input type="hidden" name="csrf_token" value="{$csrfToken}">
+                    <button class="button button-ghost" type="submit">退出登录</button>
+                </form>
+            </div>
+        </header>
+
+        {block name="content"}{/block}
+    </main>
+</div>
+
+<div class="toast-stack" id="toast-stack"></div>
+
+<div class="modal-overlay" id="modal-overlay" hidden>
+    <div class="modal-dialog" id="modal-dialog">
+        <div class="modal-header">
+            <h2 id="modal-title">对话框</h2>
+            <button class="icon-button" type="button" data-modal-close>&times;</button>
+        </div>
+        <form class="modal-body" id="modal-form">
+            <div id="modal-fields"></div>
+            <div class="modal-actions">
+                <button class="button button-secondary" type="button" data-modal-cancel">取消</button>
+                <button class="button button-primary" type="submit">保存</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+window.CBOARD = {
+    csrfToken: '{$csrfToken|raw}',
+    currentUserRole: '{$currentUser.role|raw}'
+};
+</script>
+<script src="/static/js/app.js?v={:filemtime(public_path().'static/js/app.js')}"></script>
+{block name="pageScripts"}{/block}
+</body>
+</html>

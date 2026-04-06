@@ -1,0 +1,92 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="panel-card">
+    <div class="section-head">
+        <div>
+            <span class="eyebrow">套餐详情</span>
+            <h3>{$package.name}</h3>
+            <p class="topbar-copy">{$package.description}</p>
+        </div>
+        <div class="button-row">
+            <a class="button button-ghost" href="/purchase">返回套餐列表</a>
+            <a class="button button-ghost" href="/subscriptions">查看我的订阅</a>
+        </div>
+    </div>
+</section>
+
+<section class="content-grid two-column">
+    <article class="panel-card">
+        <span class="eyebrow">套餐信息</span>
+        <h3>购买参数</h3>
+        <div class="summary-list">
+            <div><span>月付价格</span><strong>¥{$package.price_monthly|number_format=2}</strong></div>
+            <div><span>季付价格</span><strong>¥{$package.price_quarterly|number_format=2}</strong></div>
+            <div><span>年付价格</span><strong>¥{$package.price_yearly|number_format=2}</strong></div>
+            <div><span>设备数量</span><strong>{$package.device_limit}</strong></div>
+            <div><span>速率上限</span><strong>{$package.speed_limit_mbps} Mbps</strong></div>
+        </div>
+    </article>
+
+    <article class="panel-card">
+        <span class="eyebrow">立即购买</span>
+        <h3>创建订单</h3>
+        <form id="purchase-details-form">
+            <input type="hidden" name="csrf_token" value="{$csrfToken}">
+            <input type="hidden" name="package_id" value="{$package.id}">
+            <div class="field-grid">
+                <label class="field">
+                    <span>购买月数</span>
+                    <input type="number" name="months" min="1" max="24" value="1">
+                </label>
+                <label class="field">
+                    <span>优惠券</span>
+                    <input type="text" name="coupon_code" placeholder="可选">
+                </label>
+            </div>
+            <label class="field">
+                <span>支付方式</span>
+                <select name="payment_method">
+                    <option value="balance">余额支付</option>
+                    <option value="alipay">支付宝</option>
+                    <option value="manual">人工核销</option>
+                </select>
+            </label>
+            <div class="button-row">
+                <button class="button button-primary" type="submit">提交购买</button>
+            </div>
+        </form>
+    </article>
+</section>
+
+<script>
+document.getElementById('purchase-details-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const button = form.querySelector('button[type="submit"]');
+    setLoadingState(button, true);
+    try {
+        const response = await request('/api/purchase-package', {
+            method: 'POST',
+            body: {
+                package_id: form.package_id.value,
+                months: form.months.value,
+                payment_method: form.payment_method.value,
+                coupon_code: form.coupon_code.value,
+            }
+        });
+        toast(response.message);
+        if (response.data.payment_url) {
+            window.open(response.data.payment_url, '_blank');
+        }
+        if (response.data.status === 'paid') {
+            window.setTimeout(() => window.location.href = '/subscriptions', 600);
+        }
+    } catch (error) {
+        toast(error.message, 'error');
+    } finally {
+        setLoadingState(button, false);
+    }
+});
+</script>
+{/block}

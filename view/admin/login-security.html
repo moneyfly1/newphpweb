@@ -1,0 +1,155 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section id="suspicious-logins" class="panel-card" style="display: none;">
+    <h3 style="color: var(--danger); margin-bottom: 1rem;">检测到可疑登录活动</h3>
+    <div id="suspicious-content"></div>
+</section>
+
+<section class="panel-card list-filter-panel">
+    <div class="list-filter-grid">
+        <label class="field">
+            <span>关键词</span>
+            <input type="text" id="filter-user-email" placeholder="按邮箱 / IP / 用户搜索...">
+        </label>
+        <label class="field">
+            <span>国家</span>
+            <select id="filter-country">
+                <option value="">所有国家</option>
+            </select>
+        </label>
+    </div>
+    <div class="button-row">
+        <button id="btn-refresh" class="button button-ghost">刷新</button>
+    </div>
+</section>
+
+<section class="panel-card">
+    <h3 style="margin-bottom: 1rem;">最近登录活动</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>用户邮箱</th>
+                <th>IP 地址</th>
+                <th>设备</th>
+                <th>地理位置</th>
+                <th>状态</th>
+                <th>时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody id="recent-logins">
+            <tr><td colspan="7" class="loading">加载中...</td></tr>
+        </tbody>
+    </table>
+</section>
+
+<section class="content-grid two-column">
+    <section class="panel-card">
+        <h3 style="margin-bottom: 1rem;">登录地理分布 Top 10</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;" id="geo-stats">
+            <div class="loading">加载中...</div>
+        </div>
+    </section>
+
+    <section class="grid-list" style="grid-template-columns: 1fr; gap: 1rem;">
+        <article class="stat-card">
+            <div style="font-size: 0.85rem; color: var(--muted); margin-bottom: 0.5rem;">失败登录尝试</div>
+            <div style="font-size: 1.8rem; font-weight: 700; color: var(--danger);" id="failed-attempts">-</div>
+        </article>
+        <article class="stat-card">
+            <div style="font-size: 0.85rem; color: var(--muted); margin-bottom: 0.5rem;">新设备登录</div>
+            <div style="font-size: 1.8rem; font-weight: 700; color: var(--warning);" id="new-devices">-</div>
+        </article>
+        <article class="stat-card">
+            <div style="font-size: 0.85rem; color: var(--muted); margin-bottom: 0.5rem;">异常地区登录</div>
+            <div style="font-size: 1.8rem; font-weight: 700; color: var(--warning);" id="unusual-locations">-</div>
+        </article>
+    </section>
+</section>
+
+<style>
+.stat-card { background: var(--surface-strong); border: 1px solid var(--line); border-radius: 12px; padding: 1.5rem; }
+.status-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+.status-success { background: rgba(76, 175, 80, 0.2); color: #2e7d32; }
+.status-failed { background: rgba(211, 47, 47, 0.2); color: #c62828; }
+.device-info { font-size: 0.85rem; color: var(--muted); }
+.location-card { background: var(--surface-strong); border: 1px solid var(--line); border-radius: 8px; padding: 1rem; }
+.loading { text-align: center; color: var(--muted); }
+</style>
+
+<script>
+async function loadRecentLogins() {
+    try {
+        const response = await request('/admin/api/logins/recent?limit=50', {method: 'GET'});
+        const logins = response.data;
+        const rows = logins.map(log => `
+            <tr>
+                <td><strong>${log.user?.email || log.user_id}</strong></td>
+                <td><small>${log.ip_address}</small></td>
+                <td><div class="device-info">${log.device_type} - ${log.browser}<br><small>${log.os}</small></div></td>
+                <td><div>${log.country || '未知'}</div><small>${log.city || ''}</small></td>
+                <td><span class="status-badge status-${log.status}">${log.status === 'success' ? '成功' : '失败'}</span></td>
+                <td><small>${formatDate(log.created_at)}</small></td>
+                <td><button class="icon-button" type="button" data-view-history="${log.user_id}" title="查看用户登录历史"></button></td>
+            </tr>
+        `).join('');
+        document.getElementById('recent-logins').innerHTML = rows || '<tr><td colspan="7" class="loading">暂无数据</td></tr>';
+    } catch (error) {
+        toast(error.message || '加载登录历史失败', 'error');
+    }
+}
+
+async function loadGeoStats() {
+    try {
+        const response = await request('/admin/api/logins/stats/country', {method: 'GET'});
+        const stats = response.data;
+        const country = new Set();
+        const html = stats.map(stat => {
+            country.add(stat.country);
+            return `<div class="location-card"><strong>${stat.country}</strong><div>${stat.count}</div></div>`;
+        }).join('');
+        document.getElementById('geo-stats').innerHTML = html || '<div class="loading">暂无数据</div>';
+        const select = document.getElementById('filter-country');
+        country.forEach(c => {
+            const option = document.createElement('option');
+            option.value = c;
+            option.textContent = c;
+            select.appendChild(option);
+        });
+    } catch (error) {}
+}
+
+async function checkSuspicious() {
+    try {
+        const response = await request('/admin/api/logins/suspicious', {method: 'GET'});
+        const data = response.data;
+        document.getElementById('failed-attempts').textContent = data.brute_force_ips.length || 0;
+        document.getElementById('new-devices').textContent = data.impossible_locations.length || 0;
+        document.getElementById('unusual-locations').textContent = data.total_alerts || 0;
+        if (data.total_alerts > 0) {
+            document.getElementById('suspicious-logins').style.display = 'block';
+            document.getElementById('suspicious-content').innerHTML = `总告警数：${data.total_alerts}`;
+        }
+    } catch (error) {}
+}
+
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString.replace(/-/g, '/'));
+    return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadRecentLogins();
+    loadGeoStats();
+    checkSuspicious();
+    document.getElementById('btn-refresh')?.addEventListener('click', () => {
+        loadRecentLogins();
+        loadGeoStats();
+        checkSuspicious();
+        toast('已刷新', 'success');
+    });
+});
+</script>
+{/block}

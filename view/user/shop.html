@@ -1,0 +1,79 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="package-grid">
+    {volist name="packages" id="package"}
+    <label class="panel-card package-card {if condition='$i == 1'}is-selected{/if}">
+        <input class="hidden-radio" type="radio" name="package_choice" value="{$package.id}" data-package-option data-monthly="{$package.monthly_price}" data-included-devices="{$package.included_devices}" data-extra-device-price="{$package.extra_device_price}" {if condition="$i == 1"}checked{/if}>
+        <span class="eyebrow">{$package.badge}</span>
+        <h3>{$package.name}</h3>
+        <p>{$package.description}</p>
+        <strong class="package-price">¥{$package.monthly_price} / 月</strong>
+        <div class="tag-row">
+            {volist name="package.feature_tags" id="tag"}
+            <span class="chip">{$tag}</span>
+            {/volist}
+        </div>
+    </label>
+    {/volist}
+</section>
+
+<section class="content-grid two-column">
+    <form class="panel-card" id="shop-order-form">
+        <input type="hidden" name="csrf_token" value="{$csrfToken}">
+        <span class="eyebrow">自定义购买</span>
+        <h3>设备数与时长实时预估</h3>
+
+        <div class="field-grid">
+            <label class="field">
+                <span>设备数</span>
+                <input id="shop-device-count" type="number" name="device_count" min="1" value="3">
+            </label>
+            <label class="field">
+                <span>时长（月）</span>
+                <input id="shop-month-count" type="number" name="month_count" min="1" value="3">
+            </label>
+        </div>
+
+        <label class="field">
+            <span>优惠码</span>
+            <div class="inline-field">
+                <input id="shop-coupon-code" type="text" name="coupon_code" placeholder="例如 {$featured_coupon}">
+                <button class="button button-ghost" type="button" data-coupon-verify>验证</button>
+            </div>
+        </label>
+
+        <div class="payment-methods">
+            {volist name="payment_methods" id="method"}
+            <label class="payment-card {if condition='$i == 1'}is-selected{/if}">
+                <input class="hidden-radio" type="radio" name="payment_method" value="{$method.code}" {if condition="$i == 1"}checked{/if}>
+                <strong>{$method.label}</strong>
+                <span>{$method.hint}</span>
+            </label>
+            {/volist}
+        </div>
+
+        <button class="button button-primary button-block" type="submit" data-loading-text="正在生成订单...">生成订单并进入支付</button>
+    </form>
+
+    <aside class="panel-card purchase-panel">
+        <span class="eyebrow">支付抽屉预览</span>
+        <h3>实时金额与轮询状态</h3>
+        <div class="summary-list">
+            <div><span>预估原价</span><strong id="shop-original-price">¥186.00</strong></div>
+            <div><span>优惠抵扣</span><strong id="shop-discount-price">¥0.00</strong></div>
+            <div><span>应付金额</span><strong id="shop-final-price">¥186.00</strong></div>
+        </div>
+        <div class="qr-box" id="payment-qr-box">
+            <strong>等待生成订单</strong>
+            <p>选择支付方式后，这里会显示当前订单的支付载荷和轮询状态。</p>
+        </div>
+        <div class="inline-note" id="payment-polling-status">尚未开始轮询</div>
+        <ul class="list-clean compact-list">
+            {volist name="calculator_notes" id="item"}
+            <li>{$item}</li>
+            {/volist}
+        </ul>
+    </aside>
+</section>
+{/block}

@@ -1,0 +1,439 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="panel-card">
+    <div class="section-head">
+        <div>
+            <span class="eyebrow">统计中心</span>
+            <h3>按时间范围查看运营数据</h3>
+        </div>
+        <div class="button-row">
+            <select id="stat-period" style="width: 150px; padding: 0.75rem; border: 1px solid var(--line); border-radius: 8px;">
+                <option value="1day">过去1天</option>
+                <option value="7day" selected>过去7天</option>
+                <option value="30day">过去30天</option>
+                <option value="90day">过去90天</option>
+                <option value="all">全部时间</option>
+            </select>
+            <button id="refresh-stats" class="button button-ghost">刷新数据</button>
+        </div>
+    </div>
+</section>
+
+<section class="grid-list stats-dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    <article class="stat-card">
+        <div class="stat-header"><h4>活跃用户</h4><span class="stat-icon"></span></div>
+        <div class="stat-value" id="active-users">-</div>
+        <div class="stat-details">
+            <span>总用户: <strong id="total-users">-</strong></span>
+            <span>禁用: <strong id="disabled-users">-</strong></span>
+        </div>
+    </article>
+    <article class="stat-card">
+        <div class="stat-header"><h4>总收入</h4><span class="stat-icon"></span></div>
+        <div class="stat-value" id="total-revenue">¥-</div>
+        <div class="stat-details">
+            <span>今日: <strong id="today-revenue">¥-</strong></span>
+            <span>本月: <strong id="month-revenue">¥-</strong></span>
+        </div>
+    </article>
+    <article class="stat-card">
+        <div class="stat-header"><h4>订单统计</h4><span class="stat-icon"></span></div>
+        <div class="stat-value" id="total-orders">-</div>
+        <div class="stat-details">
+            <span>待支付: <strong id="pending-orders">-</strong></span>
+            <span>已支付: <strong id="paid-orders">-</strong></span>
+            <span>成交率: <strong id="order-conversion">0%</strong></span>
+        </div>
+    </article>
+    <article class="stat-card">
+        <div class="stat-header"><h4>订阅情况</h4><span class="stat-icon"></span></div>
+        <div class="stat-value" id="active-subscriptions">-</div>
+        <div class="stat-details">
+            <span>已过期: <strong id="expired-subscriptions">-</strong></span>
+            <span>续费率: <strong id="renewal-rate">0%</strong></span>
+        </div>
+    </article>
+</section>
+
+<section class="content-grid two-column">
+    <section class="panel-card">
+        <div class="chart-container">
+            <h3 style="margin-bottom: 1rem;">收入趋势</h3>
+            <canvas id="revenue-chart" height="100"></canvas>
+        </div>
+    </section>
+
+    <section class="panel-card">
+        <div class="chart-container">
+            <h3 style="margin-bottom: 1rem;">用户增长趋势</h3>
+            <canvas id="user-chart" height="100"></canvas>
+        </div>
+    </section>
+</section>
+
+<section class="panel-card">
+    <h3 style="margin-bottom: 1rem;">用户分布（按套餐）</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>套餐名称</th>
+                <th>订阅数</th>
+                <th>活跃数</th>
+                <th>已过期</th>
+                <th>周期收入</th>
+                <th>占比</th>
+            </tr>
+        </thead>
+        <tbody id="package-stats">
+            <tr><td colspan="6" class="loading">加载中...</td></tr>
+        </tbody>
+    </table>
+</section>
+
+<section class="content-grid two-column">
+    <section class="panel-card">
+        <h3 style="margin-bottom: 1rem;">支付方式统计</h3>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>支付方式</th>
+                    <th>订单数</th>
+                    <th>总金额</th>
+                    <th>占比</th>
+                    <th>平均订单额</th>
+                </tr>
+            </thead>
+            <tbody id="payment-stats">
+                <tr><td colspan="5" class="loading">加载中...</td></tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="panel-card">
+        <h3 style="margin-bottom: 1rem;">用户地理分布</h3>
+        <div id="geo-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <p class="loading">加载中...</p>
+        </div>
+    </section>
+</section>
+
+<style>
+.stats-dashboard-grid .stat-card {
+    background: var(--surface-strong);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+.stat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+.stat-header h4 {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--muted);
+}
+.stat-icon { font-size: 1.8rem; }
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--brand);
+    margin-bottom: 0.5rem;
+}
+.stat-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    font-size: 0.88rem;
+    color: var(--muted);
+}
+.chart-container {
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 8px;
+}
+.loading {
+    text-align: center;
+    color: var(--muted);
+}
+</style>
+
+<script>
+if (typeof Chart === 'undefined') {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js';
+    script.onload = () => loadStatistics();
+    document.head.appendChild(script);
+} else {
+    loadStatistics();
+}
+
+let revenueChart = null;
+let userChart = null;
+
+document.getElementById('refresh-stats')?.addEventListener('click', loadStatistics);
+document.getElementById('stat-period')?.addEventListener('change', loadStatistics);
+
+async function loadStatistics() {
+    try {
+        const period = document.getElementById('stat-period')?.value || '7day';
+        const response = await request('/admin/api/statistics?period=' + encodeURIComponent(period), { method: 'GET' });
+        const stats = response.data;
+
+        document.getElementById('active-users').textContent = stats.users_active || 0;
+        document.getElementById('total-users').textContent = stats.users_total || 0;
+        document.getElementById('disabled-users').textContent = stats.users_disabled || 0;
+        document.getElementById('total-revenue').textContent = '¥' + Number(stats.revenue_total || 0).toFixed(2);
+        document.getElementById('today-revenue').textContent = '¥' + Number(stats.revenue_today || 0).toFixed(2);
+        document.getElementById('month-revenue').textContent = '¥' + Number(stats.revenue_month || 0).toFixed(2);
+        document.getElementById('total-orders').textContent = stats.orders_total || 0;
+        document.getElementById('pending-orders').textContent = stats.orders_pending || 0;
+        document.getElementById('paid-orders').textContent = stats.orders_paid || 0;
+        document.getElementById('active-subscriptions').textContent = stats.subscriptions_active || 0;
+        document.getElementById('expired-subscriptions').textContent = stats.subscriptions_expired || 0;
+
+        const orderConversion = Number(stats.orders_total || 0) > 0 ? ((Number(stats.orders_paid || 0) / Number(stats.orders_total || 0)) * 100).toFixed(1) : '0.0';
+        document.getElementById('order-conversion').textContent = orderConversion + '%';
+
+        const renewalRate = Number(stats.subscriptions_active || 0) + Number(stats.subscriptions_expired || 0) > 0
+            ? ((Number(stats.subscriptions_active || 0) / (Number(stats.subscriptions_active || 0) + Number(stats.subscriptions_expired || 0))) * 100).toFixed(1)
+            : '0.0';
+        document.getElementById('renewal-rate').textContent = renewalRate + '%';
+
+        renderPackageStats(stats.package_stats || []);
+        renderPaymentStats(stats.payment_stats || []);
+        renderGeoStats(stats.geo_stats || []);
+        renderCharts(stats);
+    } catch (error) {
+        toast(error.message || '加载统计失败', 'error');
+    }
+}
+
+function renderPackageStats(items) {
+    const tbody = document.getElementById('package-stats');
+    if (!tbody) return;
+    tbody.innerHTML = items.length ? items.map(item => `
+        <tr>
+            <td>${item.name}</td>
+            <td>${item.total_subscriptions}</td>
+            <td>${item.active_subscriptions}</td>
+            <td>${item.expired_subscriptions}</td>
+            <td>¥${Number(item.monthly_revenue || 0).toFixed(2)}</td>
+            <td>${Number(item.percentage || 0).toFixed(1)}%</td>
+        </tr>
+    `).join('') : '<tr><td colspan="6" class="loading">暂无数据</td></tr>';
+}
+
+function renderPaymentStats(items) {
+    const tbody = document.getElementById('payment-stats');
+    if (!tbody) return;
+    tbody.innerHTML = items.length ? items.map(item => `
+        <tr>
+            <td>${item.method}</td>
+            <td>${item.order_count}</td>
+            <td>¥${Number(item.total_amount || 0).toFixed(2)}</td>
+            <td>${Number(item.percentage || 0).toFixed(1)}%</td>
+            <td>¥${Number(item.avg_amount || 0).toFixed(2)}</td>
+        </tr>
+    `).join('') : '<tr><td colspan="5" class="loading">暂无数据</td></tr>';
+}
+
+function renderGeoStats(items) {
+    const container = document.getElementById('geo-stats');
+    if (!container) return;
+    container.innerHTML = items.length ? items.map(item => `
+        <div class="panel-card panel-card-compact">
+            <strong>${item.country}</strong>
+            <p>用户数：${item.user_count || 0}</p>
+            <p>收入：¥${Number(item.revenue || 0).toFixed(2)}</p>
+        </div>
+    `).join('') : '<p class="loading">暂无地理统计</p>';
+}
+
+function renderCharts(stats) {
+    const revenueCtx = document.getElementById('revenue-chart');
+    const userCtx = document.getElementById('user-chart');
+    if (!revenueCtx || !userCtx || typeof Chart === 'undefined') return;
+
+    if (revenueChart) revenueChart.destroy();
+    if (userChart) userChart.destroy();
+
+    revenueChart = new Chart(revenueCtx, {
+        type: 'line',
+        data: {
+            labels: stats.daily_revenue?.dates || [],
+            datasets: [{
+                label: '收入',
+                data: stats.daily_revenue?.amounts || [],
+                borderColor: '#b95c2b',
+                backgroundColor: 'rgba(185, 92, 43, 0.15)',
+                fill: true,
+                tension: 0.35
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    userChart = new Chart(userCtx, {
+        type: 'bar',
+        data: {
+            labels: stats.daily_users?.dates || [],
+            datasets: [{
+                label: '新增用户',
+                data: stats.daily_users?.counts || [],
+                backgroundColor: 'rgba(63, 95, 89, 0.65)'
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+}
+</script>
+{/block}
+    try {
+        const period = document.getElementById('stat-period').value;
+        
+        // 获取统计数据
+        const response = await request('/admin/api/statistics?period=' + period, {
+            method: 'GET'
+        });
+
+        const stats = response.data;
+
+        // 更新 KPI
+        updateKPI(stats);
+
+        // 绘制图表
+        drawCharts(stats);
+
+        // 更新表格
+        updateTables(stats);
+
+    } catch (error) {
+        toast(error.message || '加载statisticsexception时出错', 'error');
+        console.error('统计错误:', error);
+    }
+}
+
+function updateKPI(data) {
+    // 用户指标
+    document.getElementById('active-users').textContent = data.users_active || 0;
+    document.getElementById('total-users').textContent = data.users_total || 0;
+    document.getElementById('disabled-users').textContent = data.users_disabled || 0;
+
+    // 收入指标
+    document.getElementById('total-revenue').textContent = '¥' + (data.revenue_total || 0).toFixed(2);
+    document.getElementById('today-revenue').textContent = '¥' + (data.revenue_today || 0).toFixed(2);
+    document.getElementById('month-revenue').textContent = '¥' + (data.revenue_month || 0).toFixed(2);
+
+    // 订单指标
+    document.getElementById('total-orders').textContent = data.orders_total || 0;
+    document.getElementById('pending-orders').textContent = data.orders_pending || 0;
+    document.getElementById('paid-orders').textContent = data.orders_paid || 0;
+
+    // 订阅指标
+    document.getElementById('active-subscriptions').textContent = data.subscriptions_active || 0;
+    document.getElementById('expired-subscriptions').textContent = data.subscriptions_expired || 0;
+
+    // 工单指标
+    document.getElementById('total-tickets').textContent = data.tickets_total || 0;
+    document.getElementById('open-tickets').textContent = data.tickets_open || 0;
+}
+
+function drawCharts(data) {
+    // 收入趋势图
+    const revenueCtx = document.getElementById('revenue-chart')?.getContext('2d');
+    if (revenueCtx && data.daily_revenue) {
+        new Chart(revenueCtx, {
+            type: 'line',
+            data: {
+                labels: data.daily_revenue.dates || [],
+                datasets: [{
+                    label: '每日收入',
+                    data: data.daily_revenue.amounts || [],
+                    borderColor: 'var(--brand)',
+                    backgroundColor: 'rgba(185, 92, 43, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    // 用户增长趋势
+    const userCtx = document.getElementById('user-chart')?.getContext('2d');
+    if (userCtx && data.daily_users) {
+        new Chart(userCtx, {
+            type: 'area',
+            data: {
+                labels: data.daily_users.dates || [],
+                datasets: [{
+                    label: '新增用户',
+                    data: data.daily_users.counts || [],
+                    borderColor: '#3f5f59',
+                    backgroundColor: 'rgba(63, 95, 89, 0.1)',
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+}
+
+function updateTables(data) {
+    // 套餐统计表
+    const packageStatsHtml = (data.package_stats || []).map(p => `
+        <tr>
+            <td><strong>${p.name}</strong></td>
+            <td>${p.total_subscriptions}</td>
+            <td>${p.active_subscriptions}</td>
+            <td>${p.expired_subscriptions}</td>
+            <td>¥${(p.monthly_revenue || 0).toFixed(2)}</td>
+            <td>${(p.percentage || 0).toFixed(1)}%</td>
+        </tr>
+    `).join('');
+    document.getElementById('package-stats').innerHTML = packageStatsHtml || '<tr><td colspan="6">暂无数据</td></tr>';
+
+    // 支付方式统计
+    const paymentStatsHtml = (data.payment_stats || []).map(p => `
+        <tr>
+            <td><strong>${p.method}</strong></td>
+            <td>${p.order_count}</td>
+            <td>¥${(p.total_amount || 0).toFixed(2)}</td>
+            <td>${(p.percentage || 0).toFixed(1)}%</td>
+            <td>¥${(p.avg_amount || 0).toFixed(2)}</td>
+        </tr>
+    `).join('');
+    document.getElementById('payment-stats').innerHTML = paymentStatsHtml || '<tr><td colspan="5">暂无数据</td></tr>';
+
+    // 地理分布
+    const geoHtml = (data.geo_stats || []).map(g => `
+        <div style="padding: 1rem; background: rgba(0,0,0,0.04); border-radius: 8px;">
+            <div style="font-weight: 600; margin-bottom: 0.5rem;">${g.country}</div>
+            <div style="color: var(--muted); font-size: 0.85rem;">
+                <div>用户: ${g.user_count}</div>
+                <div>收入: ¥${(g.revenue || 0).toFixed(2)}</div>
+            </div>
+        </div>
+    `).join('');
+    document.getElementById('geo-stats').innerHTML = geoHtml || '<p>暂无地理位置信息</p>';
+}
+
+// 时间范围变更
+document.getElementById('stat-period').addEventListener('change', loadStatistics);
+
+// 刷新按钮
+document.getElementById('refresh-stats')?.addEventListener('click', loadStatistics);
+</script>
+{/block}

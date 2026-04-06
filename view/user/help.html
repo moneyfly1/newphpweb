@@ -1,0 +1,44 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="stats-grid">
+    <article class="panel-card stat-card">
+        <span>订阅导入</span>
+        <strong>3 步完成</strong>
+        <p>复制链接、选择客户端、完成导入</p>
+    </article>
+    <article class="panel-card stat-card">
+        <span>支付支持</span>
+        <strong>账户充值 / 套餐购买</strong>
+        <p>统一在用户中心完成</p>
+    </article>
+    <article class="panel-card stat-card">
+        <span>问题反馈</span>
+        <strong>工单系统</strong>
+        <p>支持持续跟踪回复</p>
+    </article>
+</section>
+
+<section class="content-grid two-column">
+    <article class="panel-card">
+        <span class="eyebrow">快速帮助</span>
+        <h3>常见问题</h3>
+        <ul class="list-clean">
+            <li>如何购买套餐与续费</li>
+            <li>如何复制和导入订阅链接</li>
+            <li>如何处理设备数超限</li>
+            <li>如何提交工单并查看回复</li>
+        </ul>
+    </article>
+    <article class="panel-card">
+        <span class="eyebrow">推荐入口</span>
+        <h3>相关页面</h3>
+        <div class="button-row">
+            <a class="button button-ghost" href="/shop">套餐商店</a>
+            <a class="button button-ghost" href="/subscriptions">订阅管理</a>
+            <a class="button button-ghost" href="/tickets">工单系统</a>
+            <a class="button button-ghost" href="/knowledge">知识库</a>
+        </div>
+    </article>
+</section>
+{/block}

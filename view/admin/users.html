@@ -1,0 +1,360 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="stats-grid">
+    <article class="panel-card stat-card">
+        <span>总用户数</span>
+        <strong>{$userSummary.total}</strong>
+        <p>当前筛选结果</p>
+    </article>
+    <article class="panel-card stat-card">
+        <span>启用用户</span>
+        <strong>{$userSummary.enabled}</strong>
+        <p>可正常登录与下单</p>
+    </article>
+    <article class="panel-card stat-card">
+        <span>禁用用户</span>
+        <strong>{$userSummary.disabled}</strong>
+        <p>需要人工处理</p>
+    </article>
+    <article class="panel-card stat-card">
+        <span>管理员</span>
+        <strong>{$userSummary.admins}</strong>
+        <p>后台权限账号</p>
+    </article>
+    <article class="panel-card stat-card">
+        <span>活跃用户</span>
+        <strong>-</strong>
+        <p>最近7天登录过</p>
+    </article>
+    <article class="panel-card stat-card">
+        <span>新增用户</span>
+        <strong>-</strong>
+        <p>最近7天注册</p>
+    </article>
+</section>
+
+<section class="content-grid two-column">
+    <article class="panel-card">
+        <span class="eyebrow">登录概览</span>
+        <h3>最近登录活动</h3>
+        <div class="table-wrap compact-table-wrap">
+            <table class="data-table compact-table">
+                <thead>
+                    <tr><th>用户</th><th>IP</th><th>时间</th></tr>
+                </thead>
+                <tbody>
+                    {if condition="$recentLogins"}
+                        {volist name="recentLogins" id="log"}
+                        <tr>
+                            <td>{$log.user.nickname|default=$log.user.email}</td>
+                            <td>{$log.ip_address|default='未记录'}</td>
+                            <td>{$log.created_at}</td>
+                        </tr>
+                        {/volist}
+                    {else /}
+                        <tr><td colspan="3">暂无登录记录</td></tr>
+                    {/if}
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+    <article class="panel-card">
+        <span class="eyebrow">安全告警</span>
+        <h3>异常活动提醒</h3>
+        <div class="alert-group">
+            <div class="alert-card">
+                <strong>暴力破解 IP</strong>
+                <p>{if condition="$suspiciousLogins.brute_force_ips"}检测到 {count($suspiciousLogins.brute_force_ips)} 个异常来源{else /}暂无异常{/if}</p>
+            </div>
+            <div class="alert-card">
+                <strong>异地登录</strong>
+                <p>{if condition="$suspiciousLogins.impossible_locations"}检测到 {count($suspiciousLogins.impossible_locations)} 个异常用户{else /}暂无异常{/if}</p>
+            </div>
+            <div class="button-row">
+                <a class="button button-ghost" href="/admin/logins">登录安全</a>
+                <button class="button button-ghost" type="button" id="add-user-btn">新增用户</button>
+            </div>
+        </div>
+    </article>
+</section>
+
+<section class="panel-card list-filter-panel">
+    <div class="section-head">
+        <div>
+            <span class="eyebrow">高级搜索与筛选</span>
+            <h3>查找用户、批量操作及导出</h3>
+        </div>
+        <div class="button-row">
+            <button id="btn-search" class="button">搜索</button>
+            <button id="btn-reset" class="button button-ghost">重置</button>
+            <button id="btn-export" class="button button-ghost">导出 CSV</button>
+        </div>
+    </div>
+    <div class="list-filter-grid">
+        <label class="field">
+            <span>邮箱或昵称</span>
+            <input type="text" id="filter-email" placeholder="搜索邮箱 / 昵称 / 用户ID" value="{$filters.email|default=''}">
+        </label>
+        <label class="field">
+            <span>用户角色</span>
+            <select id="filter-role">
+                <option value="">全部角色</option>
+                <option value="user" {if $filters.role|default='' == 'user'}selected{/if}>普通用户</option>
+                <option value="admin" {if $filters.role|default='' == 'admin'}selected{/if}>管理员</option>
+            </select>
+        </label>
+        <label class="field">
+            <span>账户状态</span>
+            <select id="filter-status">
+                <option value="">全部状态</option>
+                <option value="1" {if $filters.status|default='' == '1'}selected{/if}>启用</option>
+                <option value="0" {if $filters.status|default='' == '0'}selected{/if}>禁用</option>
+            </select>
+        </label>
+        <label class="field">
+            <span>最低余额</span>
+            <input type="number" id="filter-balance-min" placeholder="最低" min="0" step="0.01" value="{$filters.balance_min|default=''}">
+        </label>
+        <label class="field">
+            <span>最高余额</span>
+            <input type="number" id="filter-balance-max" placeholder="最高" min="0" step="0.01" value="{$filters.balance_max|default=''}">
+        </label>
+        <label class="field">
+            <span>注册开始</span>
+            <input type="date" id="filter-date-from" value="{$filters.created_from|default=''}">
+        </label>
+        <label class="field">
+            <span>注册结束</span>
+            <input type="date" id="filter-date-to" value="{$filters.created_to|default=''}">
+        </label>
+        <label class="field">
+            <span>用户等级</span>
+            <select id="filter-level">
+                <option value="">全部等级</option>
+                <option value="0">普通会员</option>
+                <option value="1">VIP会员</option>
+                <option value="2">超级VIP</option>
+                <option value="3">钻石会员</option>
+            </select>
+        </label>
+    </div>
+</section>
+
+<section class="panel-card bulk-toolbar" id="bulk-toolbar" hidden>
+    <div class="section-head">
+        <div>
+            <span class="eyebrow">批量操作</span>
+            <h3><span id="bulk-count">0</span> 个用户已选中</h3>
+        </div>
+        <div class="button-row">
+            <button class="button button-ghost" type="button" data-admin-user-batch="enable" data-loading-text="启用中...">批量启用</button>
+            <button class="button button-ghost" type="button" data-admin-user-batch="disable" data-loading-text="禁用中...">批量禁用</button>
+            <button class="button button-ghost" type="button" data-admin-user-batch="set_user" data-loading-text="处理中...">设为普通用户</button>
+            <button class="button button-ghost" type="button" data-admin-user-batch="set_admin" data-loading-text="处理中...">设为管理员</button>
+            <button class="button button-ghost" type="button" data-admin-user-batch="send_email" data-loading-text="发送中...">发送通知邮件</button>
+            <button class="button button-danger" type="button" data-admin-user-batch="delete" data-loading-text="删除中..."> 批量删除</button>
+        </div>
+    </div>
+</section>
+
+<section class="panel-card">
+    <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button class="button button-ghost button-small" type="button" id="sort-by-created" title="按创建时间排序">排序: 创建时间 </button>
+        <button class="button button-ghost button-small" type="button" id="sort-by-balance" title="按余额排序">排序: 余额 </button>
+        <button class="button button-ghost button-small" type="button" id="toggle-columns" title="切换列可见性">列设置</button>
+    </div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" data-bulk-master></th>
+                    <th>ID</th>
+                    <th>用户信息</th>
+                    <th>等级</th>
+                    <th>余额</th>
+                    <th>状态</th>
+                    <th>工单</th>
+                    <th>创建时间</th>
+                    <th>备注</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {volist name="users" id="user"}
+                <tr data-user-id="{$user.id}" class="user-row">
+                    <td><input type="checkbox" data-bulk-item data-user-id="{$user.id}"></td>
+                    <td><strong>#{$user.id}</strong></td>
+                    <td>
+                        <div><strong>{$user.name}</strong></div>
+                        <div class="table-sub">{$user.email}</div>
+                    </td>
+                    <td>
+                        <span class="chip" style="background: var(--brand); color: white;">
+                            {$user.level|default='普通用户'}
+                        </span>
+                    </td>
+                    <td>
+                        <strong class="text-success">¥{$user.balance}</strong>
+                    </td>
+                    <td>
+                        <span class="chip {if condition="$user.enabled"}chip-success{else}chip-danger{/if}">
+                            {if condition="$user.enabled"}启用{else /}禁用{/if}
+                        </span>
+                    </td>
+                    <td><span class="chip">{$user.tickets}</span></td>
+                    <td><small>{$user.created_at|default='-'}</small></td>
+                    <td>
+                        <input type="text" class="user-note" placeholder="添加备注..." data-user-id="{$user.id}" style="max-width: 150px; padding: 0.25rem; border: 1px solid var(--line); border-radius: 4px;">
+                    </td>
+                    <td>
+                        <div class="button-row compact-action-row">
+                            <button class="button button-ghost button-small" type="button" data-admin-user-status="{$user.id}" data-enabled="{$user.enabled ? 'false' : 'true'}" title="{if condition="$user.enabled"}禁用用户{else /}启用用户{/if}">
+                                {if condition="$user.enabled"}禁{else /}启{/if}
+                            </button>
+                            <button class="button button-ghost button-small" type="button" data-admin-enter-user="{$user.id}" title="登录为此用户">进入</button>
+                            <button class="button button-ghost button-small" type="button" data-admin-user-reset="{$user.id}" title="重置密码">密码</button>
+                            <button class="button button-secondary button-small" type="button" data-user-detail-id="{$user.id}" title="查看详细信息">ℹ 详情</button>
+                        </div>
+                    </td>
+                </tr>
+                {/volist}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<style>
+.user-note { width: 100%; }
+.user-note.saving { opacity: 0.7; }
+.user-note.saved { border-color: var(--success); }
+.compact-action-row { flex-wrap: wrap; gap: 0.25rem; }
+.button-small { font-size: 0.85rem; padding: 0.35rem 0.6rem; }
+</style>
+
+<script>
+// 搜索功能
+document.getElementById('btn-search').addEventListener('click', async () => {
+    const filters = {
+        email: document.getElementById('filter-email').value,
+        role: document.getElementById('filter-role').value,
+        status: document.getElementById('filter-status').value,
+        balance_min: document.getElementById('filter-balance-min').value,
+        balance_max: document.getElementById('filter-balance-max').value,
+        created_from: document.getElementById('filter-date-from').value,
+        created_to: document.getElementById('filter-date-to').value,
+        level: document.getElementById('filter-level').value,
+    };
+
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+    });
+
+    window.location.href = '/admin/users?' + params.toString();
+});
+
+// 重置按钮
+document.getElementById('btn-reset').addEventListener('click', () => {
+    window.location.href = '/admin/users';
+});
+
+// 导出功能
+document.getElementById('btn-export').addEventListener('click', async () => {
+    const filters = {
+        email: document.getElementById('filter-email').value,
+        role: document.getElementById('filter-role').value,
+        status: document.getElementById('filter-status').value,
+    };
+
+    const params = new URLSearchParams({ model: 'users', format: 'csv' });
+    Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append('filters[' + key + ']', value);
+    });
+
+    try {
+        const response = await fetch('/admin/api/export?' + params.toString());
+        const data = await response.json();
+        const csv = data.data.content;
+        const filename = data.data.filename;
+        const blob = new Blob([csv], { type: 'text/csv; charset=utf-8;' });
+        const link = document.createElement('a');
+        link.setAttribute('href', URL.createObjectURL(blob));
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        alert('已导出 ' + filename);
+    } catch (error) {
+        alert('导出失败: ' + (error.message || '未知错误'));
+    }
+});
+
+// 备注自动保存
+const noteInputs = document.querySelectorAll('.user-note');
+const noteMap = new Map();
+
+noteInputs.forEach(input => {
+    input.addEventListener('input', () => {
+        const userId = input.dataset.userId;
+        clearTimeout(noteMap.get(userId));
+        
+        input.classList.add('saving');
+        
+        const timer = setTimeout(async () => {
+            try {
+                const response = await fetch(`/admin/api/user/${userId}/note`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ note: input.value })
+                });
+                input.classList.remove('saving');
+                input.classList.add('saved');
+                setTimeout(() => input.classList.remove('saved'), 2000);
+            } catch (error) {
+                input.classList.remove('saving');
+                console.error('备注保存失败:', error);
+            }
+        }, 1000);
+        
+        noteMap.set(userId, timer);
+    });
+});
+
+// 批量操作
+const bulkToolbar = document.getElementById('bulk-toolbar');
+const bulkCount = document.getElementById('bulk-count');
+const checkboxes = document.querySelectorAll('[data-bulk-item]');
+const masterCheckbox = document.querySelector('[data-bulk-master]');
+
+masterCheckbox?.addEventListener('change', (e) => {
+    checkboxes.forEach(cb => cb.checked = e.target.checked);
+    updateBulkToolbar();
+});
+
+checkboxes.forEach(cb => {
+    cb.addEventListener('change', updateBulkToolbar);
+});
+
+function updateBulkToolbar() {
+    const checkedCount = document.querySelectorAll('[data-bulk-item]:checked').length;
+    bulkToolbar.hidden = checkedCount === 0;
+    bulkCount.textContent = checkedCount;
+}
+
+// 新增用户按钮
+document.getElementById('add-user-btn')?.addEventListener('click', () => {
+    alert('新增用户功能开发中');
+});
+
+// 用户详情按钮
+document.querySelectorAll('[data-user-detail-id]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const userId = btn.dataset.userDetailId;
+        alert('用户详情页面功能开发中，用户ID: ' + userId);
+    });
+});
+</script>
+{/block}

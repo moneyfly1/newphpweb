@@ -1,0 +1,123 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="stats-grid">
+    <article class="panel-card stat-card"><span>套餐总数</span><strong>{$packageSummary.total}</strong><p>当前可管理套餐</p></article>
+    <article class="panel-card stat-card"><span>启用套餐</span><strong>{$packageSummary.active}</strong><p>可被前台购买</p></article>
+    <article class="panel-card stat-card"><span>停用套餐</span><strong>{$packageSummary.inactive}</strong><p>已暂停销售</p></article>
+    <article class="panel-card stat-card"><span>管理入口</span><strong>{:count($packages)}</strong><p>支持快速编辑与批量启停</p></article>
+</section>
+
+<section class="panel-card list-filter-panel">
+    <div class="section-head">
+        <div>
+            <span class="eyebrow">套餐控制台</span>
+            <h3>搜索、编辑与快速维护</h3>
+        </div>
+        <div class="button-row">
+            <button id="btn-search" class="button">搜索</button>
+            <button id="btn-reset" class="button button-ghost">重置</button>
+            <button class="button button-primary" type="button" data-admin-package-create>新增套餐</button>
+        </div>
+    </div>
+    <div class="list-filter-grid">
+        <label class="field">
+            <span>关键词</span>
+            <input type="text" id="filter-keyword" placeholder="套餐名 / 描述" value="{$filters.keyword|default=''}">
+        </label>
+        <label class="field">
+            <span>状态</span>
+            <select id="filter-status">
+                <option value="">全部</option>
+                <option value="1" {if $filters.status|default='' == '1'}selected{/if}>启用</option>
+                <option value="0" {if $filters.status|default='' == '0'}selected{/if}>停用</option>
+            </select>
+        </label>
+    </div>
+</section>
+
+<section class="panel-card bulk-toolbar" id="bulk-toolbar" hidden>
+    <div class="section-head">
+        <div>
+            <span class="eyebrow">批量操作</span>
+            <h3><span id="bulk-count">0</span> 个套餐已选中</h3>
+        </div>
+        <div class="button-row">
+            <button class="button button-ghost" type="button" data-admin-package-batch="enable" data-loading-text="处理中...">批量启用</button>
+            <button class="button button-danger" type="button" data-admin-package-batch="disable" data-loading-text="处理中...">批量停用</button>
+        </div>
+    </div>
+</section>
+
+<section class="package-grid">
+    {volist name="packages" id="package"}
+    <article class="panel-card">
+        <div class="button-row" style="justify-content: space-between; align-items: center;">
+            <span class="eyebrow">{$package.badge}</span>
+            <input type="checkbox" data-bulk-item data-package-id="{$package.id}">
+        </div>
+        <h3>{$package.name}</h3>
+        <p>{$package.description}</p>
+        <div class="summary-list">
+            <div><span>月付</span><strong>¥{$package.monthly_price}</strong></div>
+            <div><span>季付</span><strong>¥{$package.quarterly_price}</strong></div>
+            <div><span>年付</span><strong>¥{$package.yearly_price}</strong></div>
+            <div><span>设备数</span><strong>{$package.included_devices}</strong></div>
+            <div><span>速率</span><strong>{$package.speed_limit} Mbps</strong></div>
+        </div>
+        <div class="tag-row">
+            {volist name="package.feature_tags" id="tag"}
+            <span class="chip">{$tag}</span>
+            {/volist}
+        </div>
+        <div class="button-row compact-action-row">
+            <button class="button button-ghost button-small" type="button"
+                data-admin-package-edit
+                data-id="{$package.id}"
+                data-name="{$package.name}"
+                data-description="{$package.description}"
+                data-price-monthly="{$package.monthly_price}"
+                data-price-quarterly="{$package.quarterly_price}"
+                data-price-yearly="{$package.yearly_price}"
+                data-device-limit="{$package.included_devices}"
+                data-traffic-limit="{$package.traffic_limit}"
+                data-speed-limit="{$package.speed_limit}"
+                data-features="{:implode(',', $package['feature_tags'])}">编辑</button>
+            <button class="button button-secondary button-small" type="button" data-package-detail='{"id":{$package.id},"name":"{$package.name}","description":"{$package.description}","monthly":"{$package.monthly_price}","quarterly":"{$package.quarterly_price}","yearly":"{$package.yearly_price}","devices":"{$package.included_devices}","speed":"{$package.speed_limit}","features":"{:implode(' / ', $package['feature_tags'])}"}'>详情</button>
+        </div>
+    </article>
+    {/volist}
+</section>
+
+<script>
+document.getElementById('btn-search')?.addEventListener('click', () => {
+    const params = new URLSearchParams();
+    [['keyword', 'filter-keyword'], ['status', 'filter-status']].forEach(([key, id]) => {
+        const value = document.getElementById(id)?.value || '';
+        if (value) params.append(key, value);
+    });
+    window.location.href = '/admin/packages?' + params.toString();
+});
+
+document.getElementById('btn-reset')?.addEventListener('click', () => {
+    window.location.href = '/admin/packages';
+});
+
+document.querySelectorAll('[data-package-detail]').forEach((button) => {
+    button.addEventListener('click', () => {
+        const detail = JSON.parse(button.dataset.packageDetail || '{}');
+        modalMgr.show('套餐详情', [
+            { key: 'id', label: '套餐ID', value: detail.id || '', type: 'text' },
+            { key: 'name', label: '套餐名称', value: detail.name || '', type: 'text' },
+            { key: 'description', label: '描述', value: detail.description || '', type: 'textarea' },
+            { key: 'monthly', label: '月付价格', value: detail.monthly || '', type: 'text' },
+            { key: 'quarterly', label: '季付价格', value: detail.quarterly || '', type: 'text' },
+            { key: 'yearly', label: '年付价格', value: detail.yearly || '', type: 'text' },
+            { key: 'devices', label: '设备数', value: detail.devices || '', type: 'text' },
+            { key: 'speed', label: '速率Mbps', value: detail.speed || '', type: 'text' },
+            { key: 'features', label: '功能标签', value: detail.features || '', type: 'textarea' },
+        ], () => {});
+    });
+});
+</script>
+{/block}

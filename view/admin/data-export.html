@@ -1,0 +1,184 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="panel-card list-filter-panel">
+    <div class="button-row">
+        <label style="display: flex; align-items: center; gap: 0.5rem;">
+            <input type="radio" name="format" value="csv" checked> CSV
+        </label>
+        <label style="display: flex; align-items: center; gap: 0.5rem;">
+            <input type="radio" name="format" value="json"> JSON
+        </label>
+    </div>
+</section>
+
+<section class="panel-card">
+    <section class="tab-row" data-tab-root>
+        <button class="filter-chip is-active" type="button" data-tab-button="users">用户数据</button>
+        <button class="filter-chip" type="button" data-tab-button="orders">订单数据</button>
+        <button class="filter-chip" type="button" data-tab-button="subscriptions">订阅数据</button>
+        <button class="filter-chip" type="button" data-tab-button="tickets">工单数据</button>
+        <button class="filter-chip" type="button" data-tab-button="coupons">优惠券数据</button>
+        <button class="filter-chip" type="button" data-tab-button="packages">套餐数据</button>
+    </section>
+
+    <section class="tab-panel is-active" data-tab-panel="users">
+        <div class="list-filter-grid">
+            <label class="field"><span>用户状态</span><select id="users-status"><option value="">全部</option><option value="1">已启用</option><option value="0">已禁用</option></select></label>
+            <label class="field"><span>用户角色</span><select id="users-role"><option value="">全部</option><option value="user">普通用户</option><option value="admin">管理员</option></select></label>
+        </div>
+        <button class="button" data-export="users">导出用户数据</button>
+    </section>
+
+    <section class="tab-panel" data-tab-panel="orders">
+        <div class="list-filter-grid">
+            <label class="field"><span>订单状态</span><select id="orders-status"><option value="">全部</option><option value="pending">待支付</option><option value="paid">已支付</option><option value="cancelled">已取消</option></select></label>
+            <label class="field"><span>支付方式</span><select id="orders-payment"><option value="">全部</option><option value="manual">人工转账</option><option value="alipay">支付宝</option><option value="wechat">微信</option><option value="stripe">Stripe</option></select></label>
+            <label class="field"><span>开始日期</span><input type="date" id="orders-from"></label>
+            <label class="field"><span>结束日期</span><input type="date" id="orders-to"></label>
+        </div>
+        <button class="button" data-export="orders">导出订单数据</button>
+    </section>
+
+    <section class="tab-panel" data-tab-panel="subscriptions">
+        <div class="list-filter-grid">
+            <label class="field"><span>订阅状态</span><select id="subs-status"><option value="">全部</option><option value="active">活跃</option><option value="expired">已过期</option></select></label>
+        </div>
+        <button class="button" data-export="subscriptions">导出订阅数据</button>
+    </section>
+
+    <section class="tab-panel" data-tab-panel="tickets">
+        <div class="list-filter-grid">
+            <label class="field"><span>工单状态</span><select id="tickets-status"><option value="">全部</option><option value="open">开启</option><option value="in_progress">处理中</option><option value="closed">已关闭</option></select></label>
+            <label class="field"><span>优先级</span><select id="tickets-priority"><option value="">全部</option><option value="low">低</option><option value="medium">中</option><option value="high">高</option></select></label>
+        </div>
+        <button class="button" data-export="tickets">导出工单数据</button>
+    </section>
+
+    <section class="tab-panel" data-tab-panel="coupons">
+        <div class="list-filter-grid">
+            <label class="field"><span>优惠券状态</span><select id="coupons-status"><option value="">全部</option><option value="1">激活</option><option value="0">停用</option></select></label>
+        </div>
+        <button class="button" data-export="coupons">导出优惠券数据</button>
+    </section>
+
+    <section class="tab-panel" data-tab-panel="packages">
+        <div class="list-filter-grid">
+            <label class="field"><span>套餐状态</span><select id="packages-active"><option value="">全部</option><option value="1">激活</option><option value="0">停用</option></select></label>
+        </div>
+        <button class="button" data-export="packages">导出套餐数据</button>
+    </section>
+</section>
+
+<script>
+document.querySelectorAll('[data-export]').forEach(button => {
+    button.addEventListener('click', async () => {
+        const model = button.getAttribute('data-export');
+        const format = document.querySelector('input[name="format"]:checked').value;
+        const filters = {};
+        if (model === 'users') {
+            if (document.getElementById('users-status').value) filters.status = document.getElementById('users-status').value;
+            if (document.getElementById('users-role').value) filters.role = document.getElementById('users-role').value;
+        } else if (model === 'orders') {
+            if (document.getElementById('orders-status').value) filters.status = document.getElementById('orders-status').value;
+            if (document.getElementById('orders-payment').value) filters.payment_method = document.getElementById('orders-payment').value;
+            if (document.getElementById('orders-from').value) filters.date_from = document.getElementById('orders-from').value;
+            if (document.getElementById('orders-to').value) filters.date_to = document.getElementById('orders-to').value;
+        } else if (model === 'subscriptions') {
+            if (document.getElementById('subs-status').value) filters.status = document.getElementById('subs-status').value;
+        } else if (model === 'tickets') {
+            if (document.getElementById('tickets-status').value) filters.status = document.getElementById('tickets-status').value;
+            if (document.getElementById('tickets-priority').value) filters.priority = document.getElementById('tickets-priority').value;
+        } else if (model === 'coupons') {
+            if (document.getElementById('coupons-status').value) filters.status = document.getElementById('coupons-status').value;
+        } else if (model === 'packages') {
+            if (document.getElementById('packages-active').value) filters.is_active = document.getElementById('packages-active').value;
+        }
+
+        const params = new URLSearchParams({ model, format });
+        Object.entries(filters).forEach(([key, value]) => { if (value) params.append('filters[' + key + ']', value); });
+        try {
+            const response = await request('/admin/api/export?' + params.toString(), { method: 'GET' });
+            const content = response.data.content;
+            const filename = response.data.filename;
+            const blob = new Blob([content], { type: format === 'csv' ? 'text/csv;charset=utf-8;' : 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast('已导出 ' + filename, 'success');
+        } catch (error) {
+            toast(error.message || '导出失败', 'error');
+        }
+    });
+});
+</script>
+{/block}
+        }
+        // 为其他模型添加类似的过滤条件...
+        
+        await exportData(model, format, filters);
+    });
+});
+
+async function exportData(model, format, filters) {
+    try {
+        const params = new URLSearchParams({
+            model: model,
+            format: format
+        });
+        
+        // 添加过滤条件
+        Object.entries(filters).forEach(([key, value]) => {
+            params.append('filters[' + key + ']', value);
+        });
+        
+        const response = await request('/admin/api/export?' + params.toString(), {
+            method: 'GET'
+        });
+        
+        if (format === 'csv') {
+            // 下载 CSV 文件
+            const csv = response.data.content;
+            const filename = response.data.filename;
+            
+            const blob = new Blob([csv], { type: 'text/csv; charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            toast('数据已导出: ' + filename, 'success');
+        } else if (format === 'json') {
+            // 下载 JSON 文件
+            const json = JSON.stringify(response.data, null, 2);
+            const filename = model + '_' + new Date().toISOString().split('T')[0] + '.json';
+            
+            const blob = new Blob([json], { type: 'application/json' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            toast('数据已导出: ' + filename, 'success');
+        }
+    } catch (error) {
+        toast(error.message || '导出失败', 'error');
+    }
+}
+</script>
+{/block}

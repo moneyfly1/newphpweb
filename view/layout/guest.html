@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{$csrfToken}">
+    <title>{block name="title"}{$appName}{/block}</title>
+    <link rel="stylesheet" href="/static/css/app.css?v={:filemtime(public_path().'static/css/app.css')}">
+    {block name="pageStyles"}{/block}
+</head>
+<body class="guest-body">
+<div class="ambient ambient-left"></div>
+<div class="ambient ambient-right"></div>
+
+<header class="guest-header">
+    <a class="brand" href="/">
+        <span class="brand-mark">CB</span>
+        <span class="brand-copy">
+            <strong>{$appName}</strong>
+            <em>PHP SSR Website</em>
+        </span>
+    </a>
+    <div class="guest-actions">
+        <a class="button button-ghost" href="/login">进入控制台</a>
+    </div>
+</header>
+
+<main class="guest-main">
+    {block name="content"}{/block}
+</main>
+
+<script>
+window.CBOARD = {
+    csrfToken: '{$csrfToken|raw}'
+};
+</script>
+<script src="/static/js/app.js?v={:filemtime(public_path().'static/js/app.js')}"></script>
+{block name="pageScripts"}{/block}
+</body>
+</html>

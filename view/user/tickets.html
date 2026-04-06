@@ -1,0 +1,90 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="content-grid two-column">
+    <form class="panel-card" id="ticket-form">
+        <input type="hidden" name="csrf_token" value="{$csrfToken}">
+        <span class="eyebrow">新建工单</span>
+        <h3>严格校验标题与内容</h3>
+        <label class="field">
+            <span>标题</span>
+            <input type="text" name="subject" minlength="1" maxlength="100" placeholder="请用一句话描述问题" required>
+        </label>
+        <label class="field">
+            <span>内容</span>
+            <textarea name="content" rows="6" minlength="1" maxlength="2000" placeholder="补充客户端、节点、时间和错误现象" required></textarea>
+        </label>
+        <button class="button button-primary button-block" type="submit" data-loading-text="正在提交工单...">提交工单</button>
+    </form>
+
+    <div class="panel-card">
+        <span class="eyebrow">使用提示</span>
+        <h3>提交时建议包含</h3>
+        <ul class="list-clean">
+            <li>客户端名称和版本</li>
+            <li>问题出现时间和节点地区</li>
+            <li>是否导入了最新订阅链接</li>
+            <li>是否只在手机端或桌面端复现</li>
+        </ul>
+    </div>
+</section>
+
+<section class="panel-card">
+    <div class="section-head">
+        <div>
+            <span class="eyebrow">工单列表</span>
+            <h3>状态、优先级与回复概览</h3>
+        </div>
+    </div>
+    <div class="table-wrap compact-table-wrap">
+        <table class="data-table compact-table">
+            <thead>
+                <tr>
+                    <th>工单号</th>
+                    <th>标题</th>
+                    <th>状态</th>
+                    <th>优先级</th>
+                    <th>更新时间</th>
+                    <th>回复</th>
+                </tr>
+            </thead>
+            <tbody>
+                {if condition="$tickets"}
+                    {volist name="tickets" id="ticket"}
+                    <tr>
+                        <td>{$ticket.ticket_no}</td>
+                        <td>{$ticket.subject}</td>
+                        <td>{$ticket.status_label}</td>
+                        <td>{$ticket.priority_label}</td>
+                        <td>{$ticket.updated_at}</td>
+                        <td>{if condition="$ticket.unread_replies > 0"}{$ticket.unread_replies} 条未读{else /}暂无新回复{/if}</td>
+                    </tr>
+                    <tr class="ticket-detail-row">
+                        <td colspan="6">
+                            <div class="ticket-detail-box">
+                                <p><strong>问题摘要：</strong>{$ticket.excerpt}</p>
+                                {if condition="$ticket.replies"}
+                                <div class="ticket-reply-list">
+                                    {volist name="ticket.replies" id="reply"}
+                                    <div class="ticket-reply-item">
+                                        <strong>{if condition="$reply.replier_type == 'admin'"}管理员回复{else /}我的补充{/if}</strong>
+                                        <span>{$reply.created_at}</span>
+                                        <p>{$reply.content}</p>
+                                    </div>
+                                    {/volist}
+                                </div>
+                                {/if}
+                            </div>
+                        </td>
+                    </tr>
+                    {/volist}
+                {else /}
+                    <tr>
+                        <td colspan="6">暂无工单</td>
+                    </tr>
+                {/if}
+            </tbody>
+        </table>
+    </div>
+</section>
+{/block}

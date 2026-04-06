@@ -1,0 +1,175 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="stats-grid" style="margin-bottom: 1rem;">
+    <article class="panel-card stat-card"><span>待发送</span><strong id="pending-count">-</strong></article>
+    <article class="panel-card stat-card"><span>已发送</span><strong id="sent-count">-</strong></article>
+    <article class="panel-card stat-card"><span>失败</span><strong id="failed-count">-</strong></article>
+    <article class="panel-card stat-card"><span>成功率</span><strong id="success-rate">-</strong></article>
+</section>
+
+<section class="panel-card list-filter-panel">
+    <div class="button-row">
+        <button id="btn-refresh" class="button button-ghost">刷新统计</button>
+        <button id="btn-retry" class="button button-ghost">重试失败邮件</button>
+        <button id="btn-cleanup" class="button button-danger">清理已发送（30天前）</button>
+    </div>
+</section>
+
+<section class="content-grid two-column">
+    <section class="panel-card">
+        <h3 style="margin-bottom: 1rem;">按类型统计</h3>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>邮件类型</th>
+                    <th>待发送</th>
+                    <th>已发送</th>
+                    <th>失败</th>
+                    <th>合计</th>
+                </tr>
+            </thead>
+            <tbody id="type-stats">
+                <tr><td colspan="5" class="loading">加载中...</td></tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section class="panel-card">
+        <h3 style="margin-bottom: 1rem;">最近的邮件</h3>
+        <div style="overflow-x: auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>收件人</th>
+                        <th>主题</th>
+                        <th>类型</th>
+                        <th>状态</th>
+                        <th>尝试次数</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="recent-emails">
+                    <tr><td colspan="7" class="loading">加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</section>
+
+<style>
+.status-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+.status-pending { background: rgba(255, 193, 7, 0.2); color: #f57f17; }
+.status-sent { background: rgba(76, 175, 80, 0.2); color: #2e7d32; }
+.status-failed { background: rgba(211, 47, 47, 0.2); color: #c62828; }
+</style>
+
+<script>
+async function loadQueueStats() {
+    try {
+        const response = await request('/admin/api/email-queue/stats', {method: 'GET'});
+        const stats = response.data;
+        document.getElementById('pending-count').textContent = stats.pending || 0;
+        document.getElementById('sent-count').textContent = stats.sent || 0;
+        document.getElementById('failed-count').textContent = stats.failed || 0;
+        document.getElementById('success-rate').textContent = (stats.success_rate || 0) + '%';
+    } catch (error) {
+        toast(error.message || '加载队列统计失败', 'error');
+    }
+}
+
+async function loadTypeStats() {
+    try {
+        const response = await request('/admin/api/email-queue/stats/type', {method: 'GET'});
+        const stats = response.data;
+        const grouped = {};
+        stats.forEach(item => {
+            if (!grouped[item.type]) grouped[item.type] = {pending: 0, sent: 0, failed: 0};
+            grouped[item.type][item.status] = item.count;
+        });
+        const rows = Object.entries(grouped).map(([type, counts]) => `
+            <tr>
+                <td><strong>${type}</strong></td>
+                <td>${counts.pending || 0}</td>
+                <td>${counts.sent || 0}</td>
+                <td>${counts.failed || 0}</td>
+                <td>${(counts.pending || 0) + (counts.sent || 0) + (counts.failed || 0)}</td>
+            </tr>
+        `).join('');
+        document.getElementById('type-stats').innerHTML = rows || '<tr><td colspan="5">暂无数据</td></tr>';
+    } catch (error) {
+        toast(error.message || '加载类型统计失败', 'error');
+    }
+}
+
+async function loadRecentEmails() {
+    try {
+        const response = await request('/admin/api/email-queue/recent?limit=50', {method: 'GET'});
+        const emails = response.data;
+        const statusMap = { pending: '待发送', sent: '已发送', failed: '失败' };
+        const rows = emails.map(email => `
+            <tr>
+                <td><small>${email.to_email}</small></td>
+                <td><small>${email.subject.substring(0, 30)}...</small></td>
+                <td><small>${email.type}</small></td>
+                <td><span class="status-badge status-${email.status}">${statusMap[email.status] || email.status}</span></td>
+                <td>${email.attempts}/${email.max_attempts}</td>
+                <td><small>${formatDate(email.created_at)}</small></td>
+                <td><button class="icon-button" type="button" data-delete="${email.id}">&times;</button></td>
+            </tr>
+        `).join('');
+        document.getElementById('recent-emails').innerHTML = rows || '<tr><td colspan="7">暂无数据</td></tr>';
+    } catch (error) {
+        toast(error.message || '加载最近邮件失败', 'error');
+    }
+}
+
+async function deleteEmail(id) {
+    try {
+        await request('/admin/api/email-queue/' + id + '/delete', { method: 'POST', body: {} });
+        toast('邮件已删除', 'success');
+        loadRecentEmails();
+    } catch (error) {
+        toast(error.message || '删除失败', 'error');
+    }
+}
+
+async function retryFailed() {
+    try {
+        const response = await request('/admin/api/email-queue/retry', { method: 'POST', body: {} });
+        toast('已重试 ' + response.data.retried + ' 条邮件', 'success');
+        loadQueueStats(); loadTypeStats(); loadRecentEmails();
+    } catch (error) {
+        toast(error.message || '重试失败', 'error');
+    }
+}
+
+async function cleanupSent() {
+    try {
+        const response = await request('/admin/api/email-queue/cleanup', { method: 'POST', body: { keep_days: 30 } });
+        toast('已清理 ' + response.data.deleted + ' 条记录', 'success');
+        loadQueueStats(); loadTypeStats(); loadRecentEmails();
+    } catch (error) {
+        toast(error.message || '清理失败', 'error');
+    }
+}
+
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString.replace(/-/g, '/'));
+    return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadQueueStats(); loadTypeStats(); loadRecentEmails();
+    document.getElementById('btn-refresh')?.addEventListener('click', () => { loadQueueStats(); loadTypeStats(); loadRecentEmails(); toast('已刷新', 'success'); });
+    document.getElementById('btn-retry')?.addEventListener('click', retryFailed);
+    document.getElementById('btn-cleanup')?.addEventListener('click', cleanupSent);
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-delete]');
+        if (btn) deleteEmail(btn.getAttribute('data-delete'));
+    });
+});
+</script>
+{/block}

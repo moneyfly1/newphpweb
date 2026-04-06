@@ -1,0 +1,82 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="panel-card list-filter-panel">
+    <div class="section-head">
+        <div>
+            <span class="eyebrow">批量导出</span>
+            <h3>选择要打包的模块</h3>
+        </div>
+        <div class="button-row">
+            <label class="format-card"><input type="radio" name="format" value="csv" checked class="hidden-radio"> CSV</label>
+            <label class="format-card"><input type="radio" name="format" value="json" class="hidden-radio"> JSON</label>
+        </div>
+    </div>
+</section>
+
+<section class="panel-card">
+    <div class="format-list">
+        <label class="export-option"><input type="checkbox" class="export-model" value="users" checked><span><strong>用户数据</strong><p class="topbar-copy">包含所有用户信息和统计</p></span></label>
+        <label class="export-option"><input type="checkbox" class="export-model" value="orders" checked><span><strong>订单数据</strong><p class="topbar-copy">包含所有订单记录和支付信息</p></span></label>
+        <label class="export-option"><input type="checkbox" class="export-model" value="subscriptions"><span><strong>订阅数据</strong><p class="topbar-copy">包含所有订阅信息和配额</p></span></label>
+        <label class="export-option"><input type="checkbox" class="export-model" value="tickets"><span><strong>工单数据</strong><p class="topbar-copy">包含所有工单和回复记录</p></span></label>
+        <label class="export-option"><input type="checkbox" class="export-model" value="coupons"><span><strong>优惠券数据</strong><p class="topbar-copy">包含所有优惠券和使用记录</p></span></label>
+        <label class="export-option"><input type="checkbox" class="export-model" value="packages"><span><strong>套餐数据</strong><p class="topbar-copy">包含所有套餐配置</p></span></label>
+    </div>
+    <div class="button-row" style="margin-top: 1.2rem;">
+        <button id="btn-export" class="button" data-loading-text="导出中...">导出所选数据</button>
+        <button id="btn-select-all" class="button button-ghost">全选</button>
+        <button id="btn-deselect-all" class="button button-ghost">全不选</button>
+    </div>
+</section>
+
+<section class="panel-card">
+    <span class="eyebrow">使用说明</span>
+    <h3>说明</h3>
+    <ul class="list-clean">
+        <li>支持一次导出多个模块到单个 ZIP 包</li>
+        <li>CSV 兼容 Excel，JSON 适合程序处理</li>
+        <li>导出过程不会修改业务数据</li>
+    </ul>
+</section>
+
+<script>
+document.getElementById('btn-select-all').addEventListener('click', () => {
+    document.querySelectorAll('.export-model').forEach(cb => cb.checked = true);
+});
+document.getElementById('btn-deselect-all').addEventListener('click', () => {
+    document.querySelectorAll('.export-model').forEach(cb => cb.checked = false);
+});
+document.getElementById('btn-export').addEventListener('click', async (event) => {
+    const button = event.currentTarget;
+    try {
+        const models = Array.from(document.querySelectorAll('.export-model:checked')).map(cb => cb.value);
+        if (models.length === 0) {
+            toast('请选择至少一个要导出的数据类型', 'warning');
+            return;
+        }
+        const format = document.querySelector('input[name="format"]:checked').value;
+        setLoadingState(button, true);
+        const response = await request('/admin/api/batch-export', { method: 'POST', body: { models, format, filters: {} } });
+        const data = response.data;
+        if (data.isZip) {
+            const binaryString = atob(data.content);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+            const blob = new Blob([bytes], { type: 'application/zip' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = data.filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        toast('导出成功: ' + data.filename, 'success');
+    } catch (error) {
+        toast(error.message || '导出失败', 'error');
+    } finally {
+        setLoadingState(button, false);
+    }
+});
+</script>
+{/block}

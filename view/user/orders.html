@@ -1,0 +1,55 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="filter-row">
+    {volist name="filters" id="item"}
+    <a class="filter-chip {if condition='$current_filter == $item.value'}is-active{/if}" href="/orders?status={$item.value}">{$item.label}</a>
+    {/volist}
+</section>
+
+<section class="panel-card">
+    <div class="section-head">
+        <div>
+            <span class="eyebrow">订单列表</span>
+            <h3>当前筛选：{$current_filter}</h3>
+        </div>
+    </div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>订单号</th>
+                    <th>类型</th>
+                    <th>套餐</th>
+                    <th>金额</th>
+                    <th>支付方式</th>
+                    <th>状态</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {volist name="orders" id="order"}
+                <tr>
+                    <td><code>{$order.no}</code></td>
+                    <td>{$order.type}</td>
+                    <td>{$order.package_name}</td>
+                    <td>{$order.amount_label}</td>
+                    <td>{$order.payment_method}</td>
+                    <td><span class="status-pill status-{$order.status_tone}">{$order.status_label}</span></td>
+                    <td>{$order.created_at}</td>
+                    <td class="table-actions">
+                        {if condition="$order.status == 'pending'"}
+                        <a class="button button-ghost button-small" href="/shop">去支付</a>
+                        <button class="button button-danger button-small" type="button" data-cancel-order="{$order.no}">取消</button>
+                        {else /}
+                        <button class="button button-ghost button-small" type="button" data-copy="{$order.no}">复制单号</button>
+                        {/if}
+                    </td>
+                </tr>
+                {/volist}
+            </tbody>
+        </table>
+    </div>
+</section>
+{/block}

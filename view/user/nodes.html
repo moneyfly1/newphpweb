@@ -1,0 +1,59 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="stats-grid">
+    <article class="panel-card stat-card">
+        <span>订阅状态</span>
+        <strong>{$subscription.package.name|default='未开通'}</strong>
+        <p>{$subscription.package.expire_at|default='请先开通订阅'}</p>
+    </article>
+    <article class="panel-card stat-card">
+        <span>设备占用</span>
+        <strong>{$subscription.package.used_devices|default='0'} / {$subscription.package.device_limit|default='0'}</strong>
+        <p>设备数来自当前活跃订阅</p>
+    </article>
+    <article class="panel-card stat-card">
+        <span>不限流量</span>
+        <strong>无限制</strong>
+        <p>节点导入建议使用统一订阅链接</p>
+    </article>
+</section>
+
+<section class="panel-card">
+    <span class="eyebrow">订阅格式</span>
+    <h3>客户端下载与格式入口</h3>
+    <div class="format-list">
+        {volist name="subscription.formats" id="format"}
+        <article class="format-card">
+            <div>
+                <strong>{$format.label}</strong>
+                <code>{$format.url}</code>
+            </div>
+            <button class="button button-ghost button-small" type="button" data-copy="{$format.url}">复制</button>
+        </article>
+        {/volist}
+    </div>
+</section>
+
+<section class="content-grid two-column">
+    <article class="panel-card">
+        <span class="eyebrow">节点说明</span>
+        <h3>使用建议</h3>
+        <ul class="list-clean">
+            <li>优先使用标准订阅链接导入客户端</li>
+            <li>导入失败时优先尝试重置订阅链接</li>
+            <li>设备超限时前往订阅中心清理设备</li>
+            <li>不同客户端请使用对应格式下载或复制</li>
+        </ul>
+    </article>
+    <article class="panel-card">
+        <span class="eyebrow">快捷入口</span>
+        <h3>关联页面</h3>
+        <div class="button-row">
+            <a class="button button-ghost" href="/subscriptions">订阅管理</a>
+            <a class="button button-ghost" href="/knowledge">知识库</a>
+            <a class="button button-ghost" href="/help">帮助中心</a>
+        </div>
+    </article>
+</section>
+{/block}

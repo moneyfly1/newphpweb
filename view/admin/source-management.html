@@ -1,0 +1,180 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="stats-grid">
+    <article class="panel-card stat-card"><span>总采集源数</span><strong id="source-total">-</strong><p>统一查看源数量和状态</p></article>
+    <article class="panel-card stat-card"><span>已启用</span><strong id="source-enabled">-</strong><p>当前可采集的源</p></article>
+    <article class="panel-card stat-card"><span>总节点数</span><strong id="source-nodes">-</strong><p>所有采集源产生的节点</p></article>
+    <article class="panel-card stat-card"><span>成功率</span><strong id="source-success-rate">-</strong><p>采集成功率</p></article>
+</section>
+
+<section class="panel-card list-filter-panel">
+    <div class="section-head">
+        <div>
+            <span class="eyebrow">采集源控制台</span>
+            <h3>搜索、采集、日志与快速维护</h3>
+        </div>
+        <div class="button-row">
+            <button id="source-refresh" class="button button-ghost">刷新</button>
+            <button id="source-collect-all" class="button">全部采集</button>
+            <button id="source-add" class="button button-ghost">新增采集源</button>
+        </div>
+    </div>
+    <div class="list-filter-grid">
+        <label class="field"><span>关键词</span><input type="text" id="source-search" placeholder="源名称 / URL"></label>
+    </div>
+</section>
+
+<section class="panel-card">
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>名称</th>
+                    <th>地址</th>
+                    <th>类型</th>
+                    <th>格式</th>
+                    <th>节点数</th>
+                    <th>状态</th>
+                    <th>最后采集</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="source-table-body">
+                <tr><td colspan="9" class="loading">加载中...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<script>
+async function loadSources() {
+    try {
+        const keyword = document.getElementById('source-search')?.value || '';
+        const response = await request('/admin/api/sources?page=1&limit=50&search=' + encodeURIComponent(keyword), { method: 'GET' });
+        const items = response.data.items || [];
+        document.getElementById('source-table-body').innerHTML = items.length ? items.map(row => `
+            <tr>
+                <td>${row.id}</td>
+                <td>${row.name}</td>
+                <td><small>${row.source_url}</small></td>
+                <td>${row.source_type || 'subscription'}</td>
+                <td>${row.format || 'auto'}</td>
+                <td>${row.last_fetch_node_count || 0}</td>
+                <td><span class="chip">${row.is_enabled ? '启用' : '禁用'}</span></td>
+                <td>${row.last_fetch_at || '-'}</td>
+                <td>
+                    <div class="button-row compact-action-row">
+                        <button class="button button-ghost button-small" type="button" onclick="collectSource(${row.id})">采集</button>
+                        <button class="button button-secondary button-small" type="button" onclick="viewSourceLogs(${row.id})">日志</button>
+                        <button class="button button-ghost button-small" type="button" onclick="editSource(${row.id}, '${(row.name || '').replace(/'/g, "&#39;")}', '${(row.source_url || '').replace(/'/g, "&#39;")}')">编辑</button>
+                        <button class="button button-ghost button-small" type="button" onclick="deleteSource(${row.id})">删除</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('') : '<tr><td colspan="9" class="loading">暂无数据</td></tr>';
+    } catch (error) {
+        toast(error.message || '加载采集源失败', 'error');
+    }
+}
+
+async function loadSourceStats() {
+    try {
+        const response = await request('/admin/api/sources/stats', { method: 'GET' });
+        const stats = response.data || {};
+        document.getElementById('source-total').textContent = stats.total_collections || 0;
+        document.getElementById('source-enabled').textContent = stats.total_collections ? Math.round((stats.success_rate || 0) / 100 * stats.total_collections) : 0;
+        document.getElementById('source-nodes').textContent = stats.total_nodes_collected || 0;
+        document.getElementById('source-success-rate').textContent = (stats.success_rate || 0).toFixed ? stats.success_rate.toFixed(1) + '%' : (stats.success_rate || 0) + '%';
+    } catch (error) {}
+}
+
+async function collectSource(id) {
+    try {
+        await request('/admin/api/sources/' + id + '/collect', { method: 'POST', body: {} });
+        toast('采集成功', 'success');
+        loadSources();
+    } catch (error) {
+        toast(error.message || '采集失败', 'error');
+    }
+}
+
+async function deleteSource(id) {
+    try {
+        await request('/admin/api/sources/' + id, { method: 'DELETE', body: {} });
+        toast('采集源已删除', 'success');
+        loadSources();
+    } catch (error) {
+        toast(error.message || '删除失败', 'error');
+    }
+}
+
+async function editSource(id, name, url) {
+    const nextName = window.prompt('修改采集源名称', name || '');
+    if (nextName === null) return;
+    const nextUrl = window.prompt('修改采集源地址', url || '');
+    if (nextUrl === null) return;
+    try {
+        await request('/admin/api/sources/' + id, { method: 'POST', body: { name: nextName, source_url: nextUrl } });
+        toast('采集源已更新', 'success');
+        loadSources();
+    } catch (error) {
+        toast(error.message || '更新失败', 'error');
+    }
+}
+
+async function viewSourceLogs(id) {
+    try {
+        const response = await request('/admin/api/sources/' + id + '/logs?limit=10', { method: 'GET' });
+        const items = response.data.items || [];
+        modalMgr.show('采集日志', items.length ? items.map((item, index) => ({
+            key: 'log_' + index,
+            label: item.created_at || item.start_time || ('日志 ' + (index + 1)),
+            value: `成功:${item.successful_count || 0} 失败:${item.failed_count || 0} 解析:${item.parsed_node_count || 0}`,
+            type: 'text'
+        })) : [{ key: 'empty', label: '日志', value: '暂无日志', type: 'text' }], () => {});
+    } catch (error) {
+        toast(error.message || '加载日志失败', 'error');
+    }
+}
+
+document.getElementById('source-refresh')?.addEventListener('click', () => { loadSources(); loadSourceStats(); });
+document.getElementById('source-add')?.addEventListener('click', async () => {
+    const name = window.prompt('请输入采集源名称');
+    if (!name) return;
+    const sourceUrl = window.prompt('请输入采集源 URL');
+    if (!sourceUrl) return;
+    try {
+        await request('/admin/api/sources', {
+            method: 'POST',
+            body: {
+                name,
+                source_url: sourceUrl,
+                source_type: 'subscription',
+                format: '',
+                fetch_interval_minutes: 1440,
+                timeout_seconds: 30,
+                priority: 0,
+                is_enabled: 1,
+            }
+        });
+        toast('采集源已创建', 'success');
+        loadSources();
+    } catch (error) {
+        toast(error.message || '创建失败', 'error');
+    }
+});
+document.getElementById('source-collect-all')?.addEventListener('click', async () => {
+    try {
+        await request('/admin/api/sources/collect-all', { method: 'POST', body: {} });
+        toast('全部采集已启动', 'success');
+        loadSources();
+    } catch (error) {
+        toast(error.message || '全部采集失败', 'error');
+    }
+});
+document.getElementById('source-search')?.addEventListener('input', loadSources);
+document.addEventListener('DOMContentLoaded', () => { loadSources(); loadSourceStats(); });
+</script>
+{/block}

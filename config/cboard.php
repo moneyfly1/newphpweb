@@ -1,0 +1,43 @@
+<?php
+
+return [
+    'app_name'        => env('CB_APP_NAME', 'CBoard 代理服务平台'),
+    'base_url'        => env('CB_BASE_URL', 'https://panel.example.com'),
+    'payment_method_defs' => [
+        ['code' => 'balance', 'label' => '余额支付', 'hint' => '实时扣款，适合站内续费'],
+        ['code' => 'alipay', 'label' => '支付宝', 'hint' => '扫码后自动轮询'],
+        ['code' => 'wechat', 'label' => '微信支付', 'hint' => '移动端扫码更顺手'],
+        ['code' => 'usdt', 'label' => 'USDT-TRC20', 'hint' => '适合加密货币充值'],
+        ['code' => 'manual', 'label' => '人工核销', 'hint' => '适合离线打款或客服处理'],
+    ],
+    'client_formats'  => [
+        ['code' => 'raw', 'label' => '原始订阅'],
+        ['code' => 'clash', 'label' => 'Clash'],
+        ['code' => 'shadowrocket', 'label' => 'Shadowrocket'],
+        ['code' => 'v2rayn', 'label' => 'V2RayN'],
+        ['code' => 'singbox', 'label' => 'Sing-Box'],
+        ['code' => 'hiddify', 'label' => 'Hiddify'],
+    ],
+    'settings_defaults' => [
+        'site.app_name'                 => env('CB_APP_NAME', 'CBoard 代理服务平台'),
+        'site.base_url'                 => env('CB_BASE_URL', 'https://panel.example.com'),
+        'site.landing_headline'         => '低资源部署友好的代理服务平台',
+        'site.landing_blurb'            => '用户端、订单、订阅、工单和后台设置全部落到同一套 PHP + MySQL 系统中。',
+        'site.login_notice'             => '这是一个真实网站控制台，适合轻量 VPS 部署。',
+        'site.landing_notice'           => '后台各项设置都可以直接控制前台显示和业务开关。',
+        'site.shop_note'                => '套餐价格、支付方式、签到奖励由后台统一控制。',
+        'site.notice_text'              => '请在后台持续维护系统配置。',
+        'site.support_email'            => 'support@example.com',
+        'site.support_qq'               => '',
+        'site.subscription_site_url'    => env('CB_BASE_URL', 'https://panel.example.com'),
+        'site.subscription_site_name'   => env('CB_APP_NAME', 'CBoard 代理服务平台'),
+        'site.subscription_notice'      => '请使用站内推荐客户端导入订阅。',
+        'site.hero_stat_one'            => '0.5G VPS 可部署',
+        'site.hero_stat_two'            => 'PHP + MySQL',
+        'site.hero_stat_three'          => '后台控制前台',
+        'business.checkin_reward'       => 1.0,
+        'business.extra_device_price'   => 8.0,
+        'business.balance_convert_rate' => 1.0,
+        'payment.enabled_methods'       => ['balance', 'manual', 'alipay'],
+    ],
+];

@@ -1,0 +1,191 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="stats-grid">
+    <a class="panel-card stat-card stat-link" href="/admin/orders">
+        <span>今日收入</span>
+        <strong>¥{$systemStats.revenue_today|number_format=2}</strong>
+        <p>实时订单聚合</p>
+    </a>
+    <a class="panel-card stat-card stat-link" href="/admin/users">
+        <span>总用户数</span>
+        <strong>{$systemStats.users_total}</strong>
+        <p>活跃 {$systemStats.users_active} / 禁用 {$systemStats.users_disabled}</p>
+    </a>
+    <a class="panel-card stat-card stat-link" href="/admin/subscriptions">
+        <span>活跃订阅</span>
+        <strong>{$systemStats.subscriptions_active}</strong>
+        <p>已过期 {$systemStats.subscriptions_expired}</p>
+    </a>
+    <a class="panel-card stat-card stat-link" href="/admin/tickets">
+        <span>待处理工单</span>
+        <strong>{$systemStats.tickets_open}</strong>
+        <p>处理中 {$systemStats.tickets_progress}</p>
+    </a>
+</section>
+
+<section class="content-grid two-column">
+    <article class="panel-card">
+        <div class="section-head">
+            <div>
+                <span class="eyebrow">收入趋势</span>
+                <h3>本周走势</h3>
+            </div>
+            <a class="button button-ghost" href="/admin/statistics">完整统计</a>
+        </div>
+        <div class="chart-bars">
+            {volist name="trend" id="bar"}
+            <div class="chart-bar">
+                <span class="bar" style="height: {$bar.value}px"></span>
+                <strong>{$bar.label}</strong>
+            </div>
+            {/volist}
+        </div>
+        <div class="summary-list" style="margin-top: 1rem;">
+            <div><span>今日</span><strong>¥{$systemStats.revenue_today|number_format=2}</strong></div>
+            <div><span>本月</span><strong>¥{$systemStats.revenue_month|number_format=2}</strong></div>
+            <div><span>累计</span><strong>¥{$systemStats.revenue_total|number_format=2}</strong></div>
+        </div>
+    </article>
+
+    <article class="panel-card">
+        <span class="eyebrow">系统状态</span>
+        <h3>运营概览</h3>
+        <div class="summary-list">
+            <div><span>订单总量</span><strong>{$systemStats.orders_total}</strong></div>
+            <div><span>待支付订单</span><strong class="text-warning">{$systemStats.orders_pending}</strong></div>
+            <div><span>已支付订单</span><strong class="text-success">{$systemStats.orders_paid}</strong></div>
+            <div><span>工单总量</span><strong>{$systemStats.tickets_total}</strong></div>
+        </div>
+        {if condition="$suspiciousLogins.total_alerts > 0"}
+        <div class="alert-card alert-danger" style="margin-top: 1rem;">
+            <strong>安全告警</strong>
+            <p>检测到 {$suspiciousLogins.total_alerts} 条异常登录活动</p>
+        </div>
+        {/if}
+        <div class="button-row" style="margin-top: 1rem;">
+            <a class="button button-ghost" href="/admin/logins">登录安全</a>
+            <a class="button button-ghost" href="/admin/analysis">用户分析</a>
+        </div>
+    </article>
+</section>
+
+<section class="content-grid two-column">
+    <article class="panel-card">
+        <div class="section-head">
+            <div>
+                <span class="eyebrow">最近用户</span>
+                <h3>新注册用户</h3>
+            </div>
+            <a class="button button-ghost" href="/admin/users">查看全部</a>
+        </div>
+        <div class="table-wrap compact-table-wrap">
+            <table class="data-table compact-table">
+                <thead><tr><th>ID</th><th>用户</th><th>余额</th><th>注册时间</th></tr></thead>
+                <tbody id="recent-users-body">
+                    <tr><td colspan="4" class="loading">加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+    <article class="panel-card">
+        <div class="section-head">
+            <div>
+                <span class="eyebrow">最近订单</span>
+                <h3>最新支付记录</h3>
+            </div>
+            <a class="button button-ghost" href="/admin/orders">查看全部</a>
+        </div>
+        <div class="table-wrap compact-table-wrap">
+            <table class="data-table compact-table">
+                <thead><tr><th>订单号</th><th>用户</th><th>金额</th><th>状态</th></tr></thead>
+                <tbody id="recent-orders-body">
+                    <tr><td colspan="4" class="loading">加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </article>
+</section>
+
+<section class="content-grid two-column">
+    <article class="panel-card">
+        <div class="section-head">
+            <div>
+                <span class="eyebrow">最近登录</span>
+                <h3>用户登录活动</h3>
+            </div>
+            <a class="button button-ghost" href="/admin/logins">查看全部</a>
+        </div>
+        <div class="table-wrap compact-table-wrap">
+            <table class="data-table compact-table">
+                <thead><tr><th>用户</th><th>IP</th><th>时间</th></tr></thead>
+                <tbody>
+                    {if condition="$recentLogins"}
+                        {volist name="recentLogins" id="log"}
+                        <tr>
+                            <td>{$log.user.nickname|default=$log.user.email}</td>
+                            <td>{$log.ip_address|default='未记录'}</td>
+                            <td>{$log.created_at}</td>
+                        </tr>
+                        {/volist}
+                    {else /}
+                        <tr><td colspan="3" class="loading">暂无登录记录</td></tr>
+                    {/if}
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+    <article class="panel-card">
+        <span class="eyebrow">快捷管理</span>
+        <h3>常用操作入口</h3>
+        <div class="shortcut-grid">
+            <a class="shortcut-card" href="/admin/users"><strong>用户管理</strong></a>
+            <a class="shortcut-card" href="/admin/subscriptions"><strong>订阅管理</strong></a>
+            <a class="shortcut-card" href="/admin/orders"><strong>订单管理</strong></a>
+            <a class="shortcut-card" href="/admin/tickets"><strong>工单处理</strong></a>
+            <a class="shortcut-card" href="/admin/nodes/manage"><strong>节点管理</strong></a>
+            <a class="shortcut-card" href="/admin/sources/manage"><strong>采集源</strong></a>
+            <a class="shortcut-card" href="/admin/packages"><strong>套餐管理</strong></a>
+            <a class="shortcut-card" href="/admin/settings"><strong>站点设置</strong></a>
+        </div>
+    </article>
+</section>
+
+<script>
+(async () => {
+    try {
+        const usersResp = await request('/admin/api/export?model=users&format=json&limit=8', { method: 'GET' });
+        const users = (usersResp.data?.data || usersResp.data?.content || []).slice(0, 6);
+        const usersBody = document.getElementById('recent-users-body');
+        usersBody.innerHTML = users.length ? users.map(u => `
+            <tr>
+                <td>#${u.id || '-'}</td>
+                <td><strong>${u.name || u.email || '-'}</strong></td>
+                <td>${u.balance || '¥0.00'}</td>
+                <td>${u.created_at || '-'}</td>
+            </tr>
+        `).join('') : '<tr><td colspan="4" class="loading">暂无数据</td></tr>';
+    } catch (e) {
+        document.getElementById('recent-users-body').innerHTML = '<tr><td colspan="4" class="loading">暂无数据</td></tr>';
+    }
+
+    try {
+        const ordersResp = await request('/admin/api/export?model=orders&format=json&limit=8', { method: 'GET' });
+        const orders = (ordersResp.data?.data || ordersResp.data?.content || []).slice(0, 6);
+        const ordersBody = document.getElementById('recent-orders-body');
+        ordersBody.innerHTML = orders.length ? orders.map(o => `
+            <tr>
+                <td><code>${o.no || '-'}</code></td>
+                <td>${o.user || '-'}</td>
+                <td>${o.amount || '¥0.00'}</td>
+                <td><span class="chip">${o.status || '-'}</span></td>
+            </tr>
+        `).join('') : '<tr><td colspan="4" class="loading">暂无数据</td></tr>';
+    } catch (e) {
+        document.getElementById('recent-orders-body').innerHTML = '<tr><td colspan="4" class="loading">暂无数据</td></tr>';
+    }
+})();
+</script>
+{/block}

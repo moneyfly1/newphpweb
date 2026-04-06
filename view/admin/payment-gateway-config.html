@@ -1,0 +1,151 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="stats-grid">
+    <article class="panel-card stat-card"><span>网关总数</span><strong id="gateway-total">-</strong><p>当前可管理网关</p></article>
+    <article class="panel-card stat-card"><span>已启用</span><strong id="gateway-enabled">-</strong><p>已对前台开放支付</p></article>
+    <article class="panel-card stat-card"><span>待配置</span><strong id="gateway-pending">-</strong><p>需要补充密钥或参数</p></article>
+    <article class="panel-card stat-card"><span>当前选中</span><strong id="gateway-current">-</strong><p>右侧配置面板目标</p></article>
+</section>
+
+<section class="panel-card list-filter-panel">
+    <div class="section-head">
+        <div>
+            <span class="eyebrow">支付网关控制台</span>
+            <h3>启用、测试与配置统一处理</h3>
+        </div>
+        <div class="button-row">
+            <button id="refresh-gateways" class="button button-ghost">刷新网关</button>
+        </div>
+    </div>
+</section>
+
+<section class="content-grid two-column">
+    <section class="panel-card">
+        <span class="eyebrow">支付网关</span>
+        <h3>配置与启用状态</h3>
+        <div id="gateways-container" class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));"></div>
+        <div id="loading" class="loading">加载支付网关中...</div>
+    </section>
+
+    <section class="panel-card" id="gateway-config-panel" hidden>
+        <div class="section-head">
+            <div>
+                <span class="eyebrow">网关配置</span>
+                <h3 id="gateway-config-title">选择左侧网关进行配置</h3>
+            </div>
+        </div>
+        <form id="gateway-config-form">
+            <div id="gateway-config-fields" class="list-filter-grid"></div>
+            <div class="button-row" style="margin-top: 1rem;">
+                <button type="button" class="button button-ghost" id="gateway-test-btn">测试配置</button>
+                <button type="submit" class="button">保存配置</button>
+            </div>
+        </form>
+    </section>
+</section>
+
+<script>
+let allGateways = {};
+let currentGateway = '';
+
+function refreshGatewayStats() {
+    const entries = Object.entries(allGateways || {});
+    const total = entries.length;
+    const enabled = entries.filter(([, gateway]) => gateway.enabled).length;
+    const pending = entries.filter(([, gateway]) => !gateway.enabled).length;
+    document.getElementById('gateway-total').textContent = total;
+    document.getElementById('gateway-enabled').textContent = enabled;
+    document.getElementById('gateway-pending').textContent = pending;
+    document.getElementById('gateway-current').textContent = currentGateway || '-';
+}
+
+async function loadGateways() {
+    try {
+        const response = await request('/admin/api/payment-gateway/list', { method: 'GET' });
+        allGateways = response.data || {};
+        const container = document.getElementById('gateways-container');
+        container.innerHTML = Object.entries(allGateways).map(([code, gateway]) => `
+            <article class="panel-card panel-card-compact">
+                <div class="section-head">
+                    <div>
+                        <strong>${gateway.name}</strong>
+                        <p class="topbar-copy">${gateway.enabled ? '已启用' : '未启用'}</p>
+                    </div>
+                    <span class="chip">${code}</span>
+                </div>
+                <div class="stack-row">
+                    ${(gateway.features || []).map(feature => `<span class="chip">${feature}</span>`).join('')}
+                </div>
+                <div class="button-row">
+                    <button class="button button-ghost button-small" type="button" onclick="openGatewayConfig('${code}')">配置</button>
+                    <button class="button button-small" type="button" onclick="toggleGateway('${code}', ${gateway.enabled ? 'false' : 'true'})">${gateway.enabled ? '禁用' : '启用'}</button>
+                </div>
+            </article>
+        `).join('');
+        document.getElementById('loading').style.display = 'none';
+        refreshGatewayStats();
+    } catch (error) {
+        toast(error.message || '加载支付网关失败', 'error');
+    }
+}
+
+async function openGatewayConfig(code) {
+    currentGateway = code;
+    document.getElementById('gateway-config-panel').hidden = false;
+    document.getElementById('gateway-config-title').textContent = '配置 ' + code;
+    refreshGatewayStats();
+    const template = await request(`/admin/api/payment-gateway/config-template?code=${code}`, { method: 'GET' });
+    const current = await request(`/admin/api/payment-gateway/config?code=${code}`, { method: 'GET' });
+    const fields = template.data || {};
+    const config = current.data?.config || {};
+    const container = document.getElementById('gateway-config-fields');
+    container.innerHTML = Object.entries(fields).map(([key, field]) => {
+        if (field.type === 'textarea') {
+            return `<label class="field" style="grid-column: 1 / -1;"><span>${field.label}</span><textarea name="${key}" rows="5">${config[key] || ''}</textarea></label>`;
+        }
+        if (field.type === 'select') {
+            return `<label class="field"><span>${field.label}</span><select name="${key}">${Object.entries(field.options || {}).map(([value, label]) => `<option value="${value}" ${config[key] == value ? 'selected' : ''}>${label}</option>`).join('')}</select></label>`;
+        }
+        if (field.type === 'checkbox') {
+            return `<label class="field"><span>${field.label}</span><input type="checkbox" name="${key}" ${config[key] ? 'checked' : ''}></label>`;
+        }
+        return `<label class="field"><span>${field.label}</span><input type="${field.type || 'text'}" name="${key}" value="${config[key] || ''}"></label>`;
+    }).join('');
+}
+
+async function toggleGateway(code, enabled) {
+    try {
+        await request(`/admin/api/payment-gateway/set-enabled?code=${code}`, { method: 'POST', body: { enabled } });
+        toast('网关状态已更新', 'success');
+        loadGateways();
+    } catch (error) {
+        toast(error.message, 'error');
+    }
+}
+
+document.getElementById('gateway-config-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    try {
+        await request(`/admin/api/payment-gateway/config?code=${currentGateway}`, { method: 'POST', body: new FormData(form) });
+        toast('网关配置已保存', 'success');
+        loadGateways();
+    } catch (error) {
+        toast(error.message, 'error');
+    }
+});
+
+document.getElementById('gateway-test-btn')?.addEventListener('click', async () => {
+    try {
+        await request(`/admin/api/payment-gateway/test?code=${currentGateway}`, { method: 'POST', body: {} });
+        toast('网关测试成功', 'success');
+    } catch (error) {
+        toast(error.message, 'error');
+    }
+});
+
+document.getElementById('refresh-gateways')?.addEventListener('click', loadGateways);
+document.addEventListener('DOMContentLoaded', loadGateways);
+</script>
+{/block}

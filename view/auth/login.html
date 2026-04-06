@@ -1,0 +1,236 @@
+{extend name="layout/guest" /}
+
+{block name="title"}{$pageTitle} · {$appName}{/block}
+
+{block name="content"}
+<section class="panel-card auth-shell">
+    <div class="section-head">
+        <div>
+            <span class="eyebrow">统一认证中心</span>
+            <h1>{$appName}</h1>
+            <p class="muted-copy">登录、注册、找回密码统一在一个入口完成，并受后台设置控制。</p>
+        </div>
+    </div>
+
+    <section class="tab-row" data-tab-root>
+        <button class="filter-chip is-active" type="button" data-tab-button="login">登录</button>
+        {if condition="$authSettings.allow_registration"}
+        <button class="filter-chip" type="button" data-tab-button="register">注册</button>
+        {/if}
+        <button class="filter-chip" type="button" data-tab-button="forgot">找回密码</button>
+    </section>
+
+    <section class="tab-panel is-active" data-tab-panel="login">
+        <form class="panel-card form-card" method="post" action="/login">
+            <input type="hidden" name="csrf_token" value="{$csrfToken}">
+            <span class="eyebrow">登录入口</span>
+            <h2>进入控制台</h2>
+            {if condition="$error"}
+            <div class="alert-card alert-danger">{$error}</div>
+            {/if}
+            <label class="field">
+                <span>邮箱</span>
+                <input type="email" name="email" value="{$old.email|default=''}" placeholder="name@example.com" required>
+            </label>
+            <label class="field">
+                <span>密码</span>
+                <input type="password" name="password" placeholder="至少 8 位" required>
+            </label>
+            {if condition="$authSettings.require_captcha"}
+            <label class="field">
+                <span>验证码</span>
+                <div class="inline-field">
+                    <input type="text" name="captcha" placeholder="请输入验证码" required>
+                    <span class="captcha-box" onclick="refreshCaptcha()" title="点击刷新验证码">{$captcha.svg|raw}</span>
+                </div>
+            </label>
+            {/if}
+            <button class="button button-primary button-block" type="submit">进入网站控制台</button>
+        </form>
+    </section>
+
+    {if condition="$authSettings.allow_registration"}
+    <section class="tab-panel" data-tab-panel="register">
+        <form class="panel-card form-card" method="post" action="/register">
+            <input type="hidden" name="csrf_token" value="{$csrfToken}">
+            <span class="eyebrow">注册入口</span>
+            <h2>创建新账户</h2>
+            <label class="field">
+                <span>邮箱</span>
+                <input type="email" name="email" placeholder="name@example.com" required>
+            </label>
+            <label class="field">
+                <span>昵称</span>
+                <input type="text" name="nickname" placeholder="请输入昵称" required>
+            </label>
+            <label class="field">
+                <span>密码</span>
+                <input type="password" name="password" placeholder="至少 8 位" required>
+            </label>
+            <label class="field">
+                <span>确认密码</span>
+                <input type="password" name="password_confirm" placeholder="再次输入密码" required>
+            </label>
+            {if condition="$authSettings.require_email_verification"}
+            <label class="field">
+                <span>邮箱验证码</span>
+                <div class="inline-field">
+                    <input type="text" name="verification_code" placeholder="请输入邮箱验证码" required>
+                    <button class="button button-ghost" type="button" data-send-code data-scene="register">发送验证码</button>
+                </div>
+            </label>
+            {/if}
+            {if condition="$authSettings.require_captcha"}
+            <label class="field">
+                <span>验证码</span>
+                <div class="inline-field">
+                    <input type="text" name="captcha" placeholder="请输入验证码" required>
+                    <span class="captcha-box" onclick="refreshCaptcha()" title="点击刷新验证码">{$captcha.svg|raw}</span>
+                </div>
+            </label>
+            {/if}
+            <button class="button button-primary button-block" type="submit">立即注册</button>
+        </form>
+    </section>
+    {/if}
+
+    <section class="tab-panel" data-tab-panel="forgot">
+        <form class="panel-card form-card" method="post" action="/forgot-password">
+            <input type="hidden" name="csrf_token" value="{$csrfToken}">
+            <span class="eyebrow">找回密码</span>
+            <h2>重置账户密码</h2>
+            <label class="field">
+                <span>邮箱</span>
+                <input type="email" name="email" placeholder="请输入注册邮箱" required>
+            </label>
+            {if condition="$authSettings.require_email_verification"}
+            <label class="field">
+                <span>邮箱验证码</span>
+                <div class="inline-field">
+                    <input type="text" name="verification_code" placeholder="请输入邮箱验证码" required>
+                    <button class="button button-ghost" type="button" data-send-code data-scene="forgot_password">发送验证码</button>
+                </div>
+            </label>
+            {/if}
+            {if condition="$authSettings.require_captcha"}
+            <label class="field">
+                <span>验证码</span>
+                <div class="inline-field">
+                    <input type="text" name="captcha" placeholder="请输入验证码" required>
+                    <span class="captcha-box" onclick="refreshCaptcha()" title="点击刷新验证码">{$captcha.svg|raw}</span>
+                </div>
+            </label>
+            {/if}
+            <label class="field">
+                <span>新密码</span>
+                <input type="password" name="new_password" placeholder="输入新密码" required>
+            </label>
+            <label class="field">
+                <span>确认新密码</span>
+                <input type="password" name="confirm_password" placeholder="再次输入新密码" required>
+            </label>
+            <button class="button button-primary button-block" type="submit">重置密码</button>
+        </form>
+    </section>
+</section>
+
+<script>
+function updateCaptcha(svg) {
+    document.querySelectorAll('.captcha-box').forEach((node) => {
+        node.innerHTML = svg;
+    });
+}
+
+async function refreshCaptcha() {
+    try {
+        const response = await request('/captcha/refresh', { method: 'POST', body: {} });
+        updateCaptcha(response.data.svg || '');
+    } catch (error) {
+        toast(error.message, 'error');
+    }
+}
+
+function switchAuthTab(key) {
+    document.querySelectorAll('[data-tab-button]').forEach((node) => node.classList.toggle('is-active', node.dataset.tabButton === key));
+    document.querySelectorAll('[data-tab-panel]').forEach((panel) => panel.classList.toggle('is-active', panel.dataset.tabPanel === key));
+}
+
+document.querySelectorAll('[data-send-code]').forEach((button) => {
+    button.addEventListener('click', async () => {
+        const form = button.closest('form');
+        const email = form?.querySelector('input[name="email"]')?.value || '';
+        if (!email) {
+            toast('请先输入邮箱。', 'error');
+            return;
+        }
+        let seconds = 60;
+        button.disabled = true;
+        const originalText = button.textContent;
+        const timer = setInterval(() => {
+            seconds -= 1;
+            button.textContent = seconds > 0 ? `${seconds}s 后重发` : originalText;
+            if (seconds <= 0) {
+                clearInterval(timer);
+                button.disabled = false;
+            }
+        }, 1000);
+        try {
+            await request('/verification-code', {
+                method: 'POST',
+                body: { email, scene: button.dataset.scene },
+            });
+            toast('验证码已发送，请查收邮件。');
+        } catch (error) {
+            clearInterval(timer);
+            button.disabled = false;
+            button.textContent = originalText;
+            toast(error.message, 'error');
+        }
+    });
+});
+
+document.querySelector('form[action="/register"]')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const button = form.querySelector('button[type="submit"]');
+    setLoadingState(button, true);
+    try {
+        const response = await request('/register', { method: 'POST', body: new FormData(form) });
+        if (response.data.redirect) {
+            window.location.href = response.data.redirect;
+            return;
+        }
+        toast('注册成功，请直接登录。');
+        form.reset();
+        switchAuthTab('login');
+    } catch (error) {
+        refreshCaptcha();
+        toast(error.message, 'error');
+    } finally {
+        setLoadingState(button, false);
+    }
+});
+
+document.querySelector('form[action="/forgot-password"]')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const button = form.querySelector('button[type="submit"]');
+    setLoadingState(button, true);
+    try {
+        const response = await request('/forgot-password', { method: 'POST', body: new FormData(form) });
+        if (response.data.redirect) {
+            window.location.href = response.data.redirect;
+            return;
+        }
+        toast('密码已重置，请使用新密码登录。');
+        form.reset();
+        switchAuthTab('login');
+    } catch (error) {
+        refreshCaptcha();
+        toast(error.message, 'error');
+    } finally {
+        setLoadingState(button, false);
+    }
+});
+</script>
+{/block}

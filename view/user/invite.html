@@ -1,0 +1,115 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="stats-grid">
+    <article class="panel-card stat-card">
+        <span>总邀请人数</span>
+        <strong>{$stats.total_invites}</strong>
+        <p>当前邀请码总转化规模</p>
+    </article>
+    <article class="panel-card stat-card">
+        <span>已注册人数</span>
+        <strong>{$stats.registered_invites}</strong>
+        <p>通过邀请链接完成注册</p>
+    </article>
+    <article class="panel-card stat-card">
+        <span>已购买人数</span>
+        <strong>{$stats.purchased_invites}</strong>
+        <p>已完成首购并形成返利</p>
+    </article>
+    <article class="panel-card stat-card">
+        <span>累计奖励</span>
+        <strong>¥{$stats.total_reward|number_format=2}</strong>
+        <p>包含待结算与已结算返利</p>
+    </article>
+</section>
+
+{if condition="$invite_reward_settings.inviter_reward > 0 || $invite_reward_settings.invitee_reward > 0"}
+<section class="panel-card info-banner">
+    <span class="eyebrow">奖励说明</span>
+    <h3>邀请奖励规则</h3>
+    <div class="stack-row">
+        {if condition="$invite_reward_settings.inviter_reward > 0"}
+        <p><strong>邀请人奖励：</strong>被邀请人首购后奖励 ¥{$invite_reward_settings.inviter_reward|number_format=2}</p>
+        {/if}
+        {if condition="$invite_reward_settings.invitee_reward > 0"}
+        <p><strong>被邀请人奖励：</strong>使用邀请码注册后奖励 ¥{$invite_reward_settings.invitee_reward|number_format=2}</p>
+        {/if}
+    </div>
+</section>
+{/if}
+
+<section class="content-grid two-column">
+    <article class="panel-card">
+        <span class="eyebrow">邀请链接</span>
+        <h3>一键复制并分享</h3>
+        <div class="secret-box">
+            <code>{$invite_link}</code>
+            <div class="button-row">
+                <button class="button button-ghost" type="button" data-copy="{$invite_link}">复制链接</button>
+                <button class="button button-ghost" type="button" data-copy="{$invite_code}">复制邀请码</button>
+            </div>
+        </div>
+        <div class="summary-list compact-summary-list" style="margin-top: 1rem;">
+            <div><span>邀请码</span><strong>{$invite_code}</strong></div>
+            <div><span>团队人数</span><strong>{$team_size}</strong></div>
+            <div><span>待结算返利</span><strong>¥{$pending_reward}</strong></div>
+            <div><span>已结算返利</span><strong>¥{$settled_reward}</strong></div>
+            <div><span>转化率</span><strong>{$conversion_rate}</strong></div>
+        </div>
+    </article>
+
+    <article class="panel-card">
+        <span class="eyebrow">最近邀请</span>
+        <h3>奖励进度</h3>
+        <div class="invite-list">
+            {if condition="$latest_invites"}
+                {volist name="latest_invites" id="item"}
+                <div class="invite-row">
+                    <strong>{$item.email}</strong>
+                    <span>{$item.status}</span>
+                    <em>{$item.reward}</em>
+                </div>
+                {/volist}
+            {else /}
+                <p class="muted-copy">暂无邀请记录。</p>
+            {/if}
+        </div>
+    </article>
+</section>
+
+<section class="panel-card">
+    <span class="eyebrow">邀请记录</span>
+    <h3>最近邀请明细</h3>
+    <div class="table-wrap compact-table-wrap">
+        <table class="data-table compact-table">
+            <thead>
+                <tr>
+                    <th>被邀请人</th>
+                    <th>注册时间</th>
+                    <th>是否购买</th>
+                    <th>累计贡献</th>
+                    <th>奖励状态</th>
+                </tr>
+            </thead>
+            <tbody>
+                {if condition="$recent_invites"}
+                    {volist name="recent_invites" id="invite"}
+                    <tr>
+                        <td>{$invite.invitee_username}</td>
+                        <td>{$invite.created_at}</td>
+                        <td>{if condition="$invite.has_purchased"}已购买{else /}未购买{/if}</td>
+                        <td>¥{$invite.total_consumption|number_format=2}</td>
+                        <td>{if condition="$invite.reward_given"}已发放{else /}未发放{/if}</td>
+                    </tr>
+                    {/volist}
+                {else /}
+                    <tr>
+                        <td colspan="5">暂无邀请记录</td>
+                    </tr>
+                {/if}
+            </tbody>
+        </table>
+    </div>
+</section>
+{/block}

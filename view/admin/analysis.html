@@ -1,0 +1,133 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="panel-card">
+    <div class="section-head">
+        <div>
+            <span class="eyebrow">数据分析</span>
+            <h3>用户行为与趋势分析</h3>
+        </div>
+        <select id="period-selector" style="width: 150px; padding: 0.75rem; border: 1px solid var(--line); border-radius: 8px;">
+            <option value="1day" {if $period|default='7day' == '1day'}selected{/if}>过去1天</option>
+            <option value="7day" {if $period|default='7day' == '7day'}selected{/if}>过去7天</option>
+            <option value="30day" {if $period|default='7day' == '30day'}selected{/if}>过去30天</option>
+            <option value="90day" {if $period|default='7day' == '90day'}selected{/if}>过去90天</option>
+        </select>
+    </div>
+</section>
+
+<section class="stats-grid">
+    <article class="panel-card stat-card">
+        <span>新用户注册</span>
+        <strong>{$behavior.new_users}</strong>
+        <p>{$period} 内登记新用户</p>
+    </article>
+    <article class="panel-card stat-card">
+        <span>活跃用户</span>
+        <strong>{$behavior.active_users}</strong>
+        <p>{$period} 内有登录记录</p>
+    </article>
+    <article class="panel-card stat-card">
+        <span>订单数量</span>
+        <strong>{$behavior.order_count}</strong>
+        <p>{$period} 内已支付订单</p>
+    </article>
+    <article class="panel-card stat-card">
+        <span>平均订单额</span>
+        <strong>¥{$behavior.avg_order_value|number_format=2}</strong>
+        <p>客单价统计</p>
+    </article>
+</section>
+
+<section class="content-grid two-column">
+    <article class="panel-card">
+        <span class="eyebrow">套餐分布</span>
+        <h3>用户按套餐分布</h3>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>套餐名称</th>
+                    <th>总数</th>
+                    <th>活跃</th>
+                    <th>已过期</th>
+                    <th>活跃率</th>
+                </tr>
+            </thead>
+            <tbody>
+                {volist name="packageDist" id="pkg"}
+                <tr>
+                    <td><strong>{$pkg.name}</strong></td>
+                    <td>{$pkg.total}</td>
+                    <td><span class="text-success">{$pkg.active}</span></td>
+                    <td>{$pkg.expired}</td>
+                    <td><strong>{$pkg.percentage}%</strong></td>
+                </tr>
+                {/volist}
+            </tbody>
+        </table>
+    </article>
+
+    <article class="panel-card">
+        <span class="eyebrow">设备分析</span>
+        <h3>热门设备与操作系统</h3>
+        <div class="list-items">
+            {volist name="devices" id="device"}
+            <div class="list-item">
+                <div>
+                    <strong>{$device.device_name|substr=0,60}</strong>
+                    <p class="muted-text">{$device.count} 次登录</p>
+                </div>
+                <span class="badge">{$device.count}</span>
+            </div>
+            {/volist}
+            {if condition="empty($devices)"}
+            <p class="muted-text">暂无数据</p>
+            {/if}
+        </div>
+    </article>
+</section>
+
+<article class="panel-card">
+    <span class="eyebrow">流失预警</span>
+    <h3>30天未登录用户预警</h3>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>用户ID</th>
+                    <th>邮箱</th>
+                    <th>昵称</th>
+                    <th>最后登录</th>
+                    <th>注册时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {volist name="churnWarning" id="user"}
+                <tr>
+                    <td>#{$user.id}</td>
+                    <td>{$user.email}</td>
+                    <td>{$user.nickname}</td>
+                    <td>{$user.last_login}</td>
+                    <td>{$user.created_at}</td>
+                    <td>
+                        <button class="button button-ghost button-small" type="button">发送提醒邮件</button>
+                    </td>
+                </tr>
+                {/volist}
+                {if condition="empty($churnWarning)"}
+                <tr>
+                    <td colspan="6" class="text-center">暂无流失用户</td>
+                </tr>
+                {/if}
+            </tbody>
+        </table>
+    </div>
+</article>
+
+<script>
+document.getElementById('period-selector')?.addEventListener('change', (e) => {
+    window.location.href = `/admin/analysis?period=${e.target.value}`;
+});
+</script>
+{/block}

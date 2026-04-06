@@ -1,0 +1,350 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="panel-header">
+    <span class="eyebrow">管理面板</span>
+    <h2>高级系统设置</h2>
+    <p>配置系统核心功能和安全策略</p>
+</section>
+
+<section class="panel-card">
+    <div class="tab-row" data-tab-root>
+        <button class="filter-chip is-active" type="button" data-tab-button="system">系统</button>
+        <button class="filter-chip" type="button" data-tab-button="security">安全</button>
+        <button class="filter-chip" type="button" data-tab-button="payment">支付</button>
+        <button class="filter-chip" type="button" data-tab-button="email">邮件</button>
+        <button class="filter-chip" type="button" data-tab-button="notification">通知</button>
+        <button class="filter-chip" type="button" data-tab-button="theme">主题</button>
+    </div>
+
+    <!-- 系统设置 -->
+    <article class="tab-panel is-active" data-tab-panel="system">
+        <h3>基础设置</h3>
+        <div class="field-grid">
+            <label class="field toggle-field">
+                <input type="checkbox" id="maintenance-mode" data-setting="maintenance_mode">
+                <span>启用维护模式</span>
+            </label>
+            <p class="hint">启用后，非管理员用户将看到维护页面</p>
+
+            <label class="field toggle-field">
+                <input type="checkbox" id="allow-registration" data-setting="allow_registration">
+                <span>允许用户注册</span>
+            </label>
+            <p class="hint">禁用后，新用户无法注册账户</p>
+
+            <label class="field toggle-field">
+                <input type="checkbox" id="require-email-verify" data-setting="require_email_verification">
+                <span>要求邮箱验证</span>
+            </label>
+            <p class="hint">要求用户验证邮箱才能激活账户</p>
+        </div>
+
+        <h4 style="margin-top: 2rem;">安全策略</h4>
+        <div class="field-grid">
+            <label class="field">
+                <span>登录失败限制 (次)</span>
+                <input type="number" id="login-fail-limit" data-setting="login_fail_limit" min="1" max="100" value="5">
+            </label>
+            <label class="field">
+                <span>会话超时 (分钟)</span>
+                <input type="number" id="session-timeout" data-setting="session_timeout_minutes" min="5" max="1440" value="480">
+            </label>
+            <label class="field">
+                <span>备份计划 (Cron)</span>
+                <input type="text" id="backup-cron" data-setting="backup_schedule_cron" value="0 2 * * *">
+            </label>
+        </div>
+
+        <button class="button button-primary" style="margin-top: 1rem;" data-save-section="system">保存系统设置</button>
+    </article>
+
+    <!-- 安全设置 -->
+    <article class="tab-panel" data-tab-panel="security">
+        <h3>密码策略</h3>
+        <div class="field-grid">
+            <label class="field">
+                <span>密码最小长度</span>
+                <input type="number" id="password-min-length" data-setting="password_min_length" min="4" max="128" value="6">
+            </label>
+            <label class="field toggle-field">
+                <input type="checkbox" id="require-special-char" data-setting="require_password_special_char">
+                <span>要求特殊字符</span>
+            </label>
+            <label class="field">
+                <span>密码过期天数 (0=永不过期)</span>
+                <input type="number" id="password-expiry" data-setting="password_expiry_days" min="0" max="365" value="0">
+            </label>
+        </div>
+
+        <h4 style="margin-top: 2rem;">API 频率限制</h4>
+        <div class="field-grid">
+            <label class="field toggle-field">
+                <input type="checkbox" id="rate-limit-enabled" data-setting="rate_limit_enabled">
+                <span>启用频率限制</span>
+            </label>
+            <label class="field">
+                <span>限制请求数</span>
+                <input type="number" id="rate-limit-requests" data-setting="rate_limit_requests" min="10" max="10000" value="100">
+            </label>
+            <label class="field">
+                <span>时间窗口 (秒)</span>
+                <input type="number" id="rate-limit-window" data-setting="rate_limit_window_seconds" min="1" max="3600" value="60">
+            </label>
+        </div>
+
+        <button class="button button-primary" style="margin-top: 1rem;" data-save-section="security">保存安全设置</button>
+    </article>
+
+    <!-- 支付设置 -->
+    <article class="tab-panel" data-tab-panel="payment">
+        <h3>订单设置</h3>
+        <div class="field-grid">
+            <label class="field">
+                <span>订单支付超时 (分钟)</span>
+                <input type="number" id="order-timeout" data-setting="order_timeout_minutes" min="5" max="1440" value="30">
+                <p class="hint">用户必须在此时间内完成支付</p>
+            </label>
+        </div>
+
+        <h4>支付方式</h4>
+        <div class="field-grid">
+            <label class="field toggle-field">
+                <input type="checkbox" id="manual-enabled" data-setting="manual_enabled">
+                <span>启用手动转账</span>
+            </label>
+            <label class="field toggle-field">
+                <input type="checkbox" id="alipay-enabled" data-setting="alipay_enabled">
+                <span>启用支付宝</span>
+            </label>
+            <label class="field toggle-field">
+                <input type="checkbox" id="wechat-enabled" data-setting="wechat_enabled">
+                <span>启用微信支付</span>
+            </label>
+            <label class="field toggle-field">
+                <input type="checkbox" id="stripe-enabled" data-setting="stripe_enabled">
+                <span>启用 Stripe</span>
+            </label>
+        </div>
+
+        <button class="button button-primary" style="margin-top: 1rem;" data-save-section="payment">保存支付设置</button>
+    </article>
+
+    <!-- 邮件设置 -->
+    <article class="tab-panel" data-tab-panel="email">
+        <h3>SMTP 配置</h3>
+        <div class="field-grid">
+            <label class="field">
+                <span>SMTP 服务器</span>
+                <input type="text" id="smtp-host" data-setting="smtp_host" placeholder="smtp.gmail.com">
+            </label>
+            <label class="field">
+                <span>SMTP 端口</span>
+                <input type="number" id="smtp-port" data-setting="smtp_port" min="1" max="65535" value="587">
+            </label>
+            <label class="field">
+                <span>加密方式</span>
+                <select id="smtp-encryption" data-setting="smtp_encryption">
+                    <option value="tls">TLS</option>
+                    <option value="ssl">SSL</option>
+                    <option value="none">无</option>
+                </select>
+            </label>
+            <label class="field">
+                <span>发件人邮箱</span>
+                <input type="email" id="from-address" data-setting="from_address" placeholder="noreply@example.com">
+            </label>
+            <label class="field">
+                <span>发件人名称</span>
+                <input type="text" id="from-name" data-setting="from_name" placeholder="系统通知">
+            </label>
+        </div>
+
+        <button class="button button-primary" style="margin-top: 1rem;" data-save-section="email">保存邮件设置</button>
+        <button class="button button-ghost" style="margin-left: 0.5rem;" id="test-email">发送测试邮件</button>
+    </article>
+
+    <!-- 通知设置 -->
+    <article class="tab-panel" data-tab-panel="notification">
+        <h3>邮件通知</h3>
+        <div class="field-grid">
+            <label class="field toggle-field">
+                <input type="checkbox" id="email-order" data-setting="email_order_notification">
+                <span>订单通知</span>
+            </label>
+            <label class="field toggle-field">
+                <input type="checkbox" id="email-subscription" data-setting="email_subscription_notification">
+                <span>订阅通知</span>
+            </label>
+            <label class="field toggle-field">
+                <input type="checkbox" id="email-ticket" data-setting="email_ticket_reply_notification">
+                <span>工单回复通知</span>
+            </label>
+            <label class="field">
+                <span>过期前提醒 (天)</span>
+                <input type="number" id="expiration-warning" data-setting="email_expiration_warning_days" min="1" max="90" value="7">
+            </label>
+        </div>
+
+        <h4 style="margin-top: 2rem;">站内通知</h4>
+        <div class="field-grid">
+            <label class="field toggle-field">
+                <input type="checkbox" id="in-app-notifications" data-setting="in_app_notifications_enabled">
+                <span>启用站内通知</span>
+            </label>
+        </div>
+
+        <button class="button button-primary" style="margin-top: 1rem;" data-save-section="notification">保存通知设置</button>
+    </article>
+
+    <!-- 主题设置 -->
+    <article class="tab-panel" data-tab-panel="theme">
+        <h3>色彩配置</h3>
+        <div class="field-grid">
+            <label class="field">
+                <span>主色</span>
+                <input type="color" id="primary-color" data-setting="primary_color" value="#b95c2b">
+            </label>
+            <label class="field">
+                <span>辅助色</span>
+                <input type="color" id="secondary-color" data-setting="secondary_color" value="#3f5f59">
+            </label>
+            <label class="field">
+                <span>危险色</span>
+                <input type="color" id="danger-color" data-setting="danger_color" value="#b03a2d">
+            </label>
+        </div>
+
+        <h4 style="margin-top: 2rem;">品牌资源</h4>
+        <div class="field-grid">
+            <label class="field">
+                <span>Logo URL</span>
+                <input type="url" id="logo-url" data-setting="logo_url" placeholder="https://example.com/logo.png">
+            </label>
+            <label class="field">
+                <span>Favicon URL</span>
+                <input type="url" id="favicon-url" data-setting="favicon_url" placeholder="https://example.com/favicon.ico">
+            </label>
+            <label class="field toggle-field">
+                <input type="checkbox" id="dark-mode-default" data-setting="dark_mode_default">
+                <span>默认使用深色模式</span>
+            </label>
+        </div>
+
+        <button class="button button-primary" style="margin-top: 1rem;" data-save-section="theme">保存主题设置</button>
+    </article>
+</section>
+
+<style>
+.panel-header {
+    margin-bottom: 2rem;
+}
+
+.panel-header h2 {
+    margin: 0.5rem 0 0 0;
+    font-size: 1.6rem;
+}
+
+.panel-header p {
+    margin: 0.25rem 0 0 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.tab-panel {
+    display: none;
+    padding: 1.5rem 0;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+.tab-panel.is-active {
+    display: block;
+}
+
+.tab-panel h3 {
+    margin: 1.5rem 0 1rem 0;
+    font-size: 1.1rem;
+}
+
+.tab-panel h4 {
+    margin: 1rem 0 0.75rem 0;
+    font-size: 0.95rem;
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.hint {
+    margin: 0.25rem 0 1rem 0;
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.toggle-field {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.toggle-field input[type="checkbox"] {
+    width: auto;
+    height: 20px;
+    margin: 0;
+}
+
+.toggle-field span {
+    margin: 0;
+}
+</style>
+
+<script>
+// 标签页切换
+document.querySelectorAll('[data-tab-button]').forEach(button => {
+    button.addEventListener('click', function() {
+        const tab = this.dataset.tabButton;
+        document.querySelectorAll('[data-tab-button]').forEach(b => b.classList.remove('is-active'));
+        document.querySelectorAll('[data-tab-panel]').forEach(p => p.classList.remove('is-active'));
+        this.classList.add('is-active');
+        document.querySelector('[data-tab-panel="' + tab + '"]').classList.add('is-active');
+    });
+});
+
+// 保存设置
+document.querySelectorAll('[data-save-section]').forEach(button => {
+    button.addEventListener('click', async function() {
+        try {
+            const settings = {};
+            document.querySelectorAll('[data-setting]').forEach(input => {
+                if (input.type === 'checkbox') {
+                    settings[input.dataset.setting] = input.checked ? 1 : 0;
+                } else {
+                    settings[input.dataset.setting] = input.value;
+                }
+            });
+
+            await request('/admin/api/settings/advanced', {
+                method: 'POST',
+                body: settings
+            });
+            toast('设置已保存', 'success');
+        } catch (error) {
+            toast(error.message || '保存失败', 'error');
+        }
+    });
+});
+
+// 测试邮件
+document.getElementById('test-email')?.addEventListener('click', async function() {
+    try {
+        await request('/admin/api/settings/test-email', {
+            method: 'POST',
+            body: {}
+        });
+        toast('测试邮件已发送', 'success');
+    } catch (error) {
+        toast(error.message || '发送失败', 'error');
+    }
+});
+</script>
+{/block}

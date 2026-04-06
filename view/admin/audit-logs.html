@@ -1,0 +1,105 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="panel-card list-filter-panel">
+    <div class="list-filter-grid">
+        <label class="field">
+            <span>关键词</span>
+            <input type="search" placeholder="搜索操作类型、操作人或目标..." id="log-search">
+        </label>
+        <label class="field">
+            <span>操作类型</span>
+            <select id="log-filter">
+                <option value="">所有操作</option>
+                <option value="user_created">创建用户</option>
+                <option value="user_updated">修改用户</option>
+                <option value="user_deleted">删除用户</option>
+                <option value="order_updated">订单更新</option>
+                <option value="subscription_extended">订阅延期</option>
+                <option value="settings_changed">设置变更</option>
+            </select>
+        </label>
+    </div>
+</section>
+
+<section class="panel-card">
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 150px;">操作时间</th>
+                    <th style="width: 120px;">操作类型</th>
+                    <th style="width: 140px;">目标对象</th>
+                    <th style="width: 160px;">操作人</th>
+                    <th>变更详情</th>
+                </tr>
+            </thead>
+            <tbody id="logs-tbody">
+                {volist name="items" id="log"}
+                <tr class="log-row" data-action="{$log.action}">
+                    <td>{$log.created_at}</td>
+                    <td><span class="badge">{$log.action}</span></td>
+                    <td>{$log.target}</td>
+                    <td>{$log.admin_email}</td>
+                    <td style="font-size: 0.85rem;">
+                        {if $log.old_values || $log.new_values}
+                        <button class="button-text" onclick="showDetails(this)">查看变更</button>
+                        <div class="log-details" style="display: none;">
+                            <strong>旧值：</strong> {$log.old_values|json_encode}<br>
+                            <strong>新值：</strong> {$log.new_values|json_encode}
+                        </div>
+                        {/if}
+                    </td>
+                </tr>
+                {/volist}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination" style="margin-top: 1rem;">
+        {if $page > 1}
+        <a href="?page=1" class="button button-ghost">首页</a>
+        <a href="?page={$page - 1}" class="button button-ghost">上一页</a>
+        {/if}
+        <span style="padding: 0.5rem 1rem;">第 {$page} 页</span>
+        <a href="?page={$page + 1}" class="button button-ghost">下一页</a>
+    </div>
+</section>
+
+<style>
+.table-container { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 1rem; }
+.badge { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; color: white; background: var(--brand); }
+.button-text { background: none; border: none; color: var(--brand); cursor: pointer; padding: 0; text-decoration: underline; }
+.log-details { background: rgba(0, 0, 0, 0.04); padding: 0.5rem; margin-top: 0.5rem; border-radius: 4px; font-family: monospace; font-size: 0.8rem; line-height: 1.4; max-height: 200px; overflow-y: auto; }
+.pagination { display: flex; gap: 0.5rem; justify-content: center; align-items: center; flex-wrap: wrap; }
+</style>
+
+<script>
+function showDetails(button) {
+    const details = button.nextElementSibling;
+    if (details.style.display === 'none') {
+        details.style.display = 'block';
+        button.textContent = '隐藏变更';
+    } else {
+        details.style.display = 'none';
+        button.textContent = '查看变更';
+    }
+}
+
+document.getElementById('log-search')?.addEventListener('input', filterLogs);
+document.getElementById('log-filter')?.addEventListener('change', filterLogs);
+
+function filterLogs() {
+    const searchValue = document.getElementById('log-search').value.toLowerCase();
+    const filterValue = document.getElementById('log-filter').value;
+
+    document.querySelectorAll('.log-row').forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const action = row.dataset.action;
+        const matchesSearch = text.includes(searchValue);
+        const matchesFilter = !filterValue || action === filterValue;
+        row.style.display = matchesSearch && matchesFilter ? '' : 'none';
+    });
+}
+</script>
+{/block}

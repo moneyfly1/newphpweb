@@ -1,0 +1,125 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+{if condition="$renewal_notice"}
+<section class="panel-card alert-card alert-danger">
+    <div class="section-head">
+        <div>
+            <strong>到期提醒</strong>
+            <p>{$renewal_notice}</p>
+        </div>
+        <div class="button-row">
+            <a class="button button-primary" href="/shop">立即续费</a>
+        </div>
+    </div>
+</section>
+{/if}
+
+<section class="stats-grid">
+    {volist name="stats" id="item"}
+    <article class="panel-card stat-card">
+        <span>{$item.label}</span>
+        <strong>{$item.value}</strong>
+        <p>{$item.note}</p>
+    </article>
+    {/volist}
+</section>
+
+<section class="content-grid two-column">
+    <article class="panel-card">
+        <span class="eyebrow">我的套餐</span>
+        <h3>{$account_summary.plan_name}</h3>
+        <div class="summary-list">
+            <div><span>套餐状态</span><strong><span class="chip chip-success">{$account_summary.plan_badge}</span></strong></div>
+            <div><span>账户余额</span><strong class="text-brand">{$account_summary.balance_label}</strong></div>
+            <div><span>设备使用</span><strong>{$account_summary.device_usage}</strong></div>
+            <div><span>到期时间</span><strong>{$account_summary.expire_at}</strong></div>
+            <div><span>剩余天数</span><strong>{if condition="$account_summary.days_remaining !== null"}{$account_summary.days_remaining} 天{else /}--{/if}</strong></div>
+        </div>
+        <div class="button-row" style="margin-top: 1rem;">
+            <a class="button button-primary" href="/shop">续费 / 升级</a>
+            <a class="button button-ghost" href="/subscriptions">订阅管理</a>
+        </div>
+    </article>
+
+    <article class="panel-card">
+        <div class="section-head">
+            <div>
+                <span class="eyebrow">每日签到</span>
+                <h3>{$checkin.streak_label}</h3>
+            </div>
+            <button class="button button-primary" type="button" data-checkin-btn {if condition="$checkin.checked_in_today"}disabled{/if}>
+                {if condition="$checkin.checked_in_today"}已签到{else /}签到 {$checkin.reward_label}{/if}
+            </button>
+        </div>
+        <p class="topbar-copy">每日签到可获得余额奖励，连续签到奖励更多。</p>
+
+        <span class="eyebrow" style="margin-top: 1.2rem; display: block;">快捷操作</span>
+        <div class="shortcut-grid">
+            <a class="shortcut-card" href="/purchase"><strong>购买套餐</strong></a>
+            <a class="shortcut-card" href="/recharge"><strong>账户充值</strong></a>
+            <a class="shortcut-card" href="/orders"><strong>我的订单</strong></a>
+            <a class="shortcut-card" href="/tickets"><strong>提交工单</strong></a>
+            <a class="shortcut-card" href="/invite"><strong>邀请返利</strong></a>
+            <a class="shortcut-card" href="/settings"><strong>账户设置</strong></a>
+        </div>
+    </article>
+</section>
+
+<section class="content-grid two-column">
+    <article class="panel-card">
+        <div class="section-head">
+            <div>
+                <span class="eyebrow">订阅链接</span>
+                <h3>复制 / 导入客户端</h3>
+            </div>
+        </div>
+        <div class="secret-box">
+            <code class="secret-value is-masked" id="dashboard-subscription" data-secret="{$subscription.raw_url}">{$subscription.masked_url}</code>
+            <div class="button-row">
+                <button class="button button-ghost" type="button" data-mask-toggle="#dashboard-subscription">显示</button>
+                <button class="button button-ghost" type="button" data-copy="{$subscription.raw_url}">复制</button>
+                <a class="button button-ghost" href="/subscriptions">更多格式</a>
+            </div>
+        </div>
+        <div class="client-grid">
+            {volist name="clients" id="client"}
+            <button class="client-card" type="button" data-import-client data-scheme="{$client.scheme}" data-sub-url="{$subscription.raw_url}">
+                <strong>{$client.label}</strong>
+                <span>一键导入</span>
+            </button>
+            {/volist}
+        </div>
+    </article>
+
+    <article class="panel-card">
+        <span class="eyebrow">安全概览</span>
+        <h3>最近登录记录</h3>
+        <div class="table-wrap compact-table-wrap">
+            <table class="data-table compact-table">
+                <thead>
+                    <tr><th>时间</th><th>IP</th><th>设备</th></tr>
+                </thead>
+                <tbody>
+                    {if condition="$recent_logins"}
+                        {volist name="recent_logins" id="log"}
+                        <tr>
+                            <td>{$log.time}</td>
+                            <td>{$log.ip}</td>
+                            <td>{$log.device}</td>
+                        </tr>
+                        {/volist}
+                    {else /}
+                        <tr><td colspan="3" class="loading">暂无登录记录</td></tr>
+                    {/if}
+                </tbody>
+            </table>
+        </div>
+        <div class="button-row" style="margin-top: 1rem;">
+            <a class="button button-ghost" href="/settings">安全设置</a>
+            <a class="button button-ghost" href="/nodes">节点中心</a>
+            <a class="button button-ghost" href="/knowledge">使用教程</a>
+        </div>
+    </article>
+</section>
+{/block}

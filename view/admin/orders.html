@@ -1,0 +1,173 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="stats-grid">
+    <article class="panel-card stat-card"><span>订单总数</span><strong>{$stats.total}</strong><p>当前筛选结果</p></article>
+    <article class="panel-card stat-card"><span>待支付</span><strong>{$stats.pending}</strong><p>等待付款或人工处理</p></article>
+    <article class="panel-card stat-card"><span>已支付</span><strong>{$stats.paid}</strong><p>已成功完成结算</p></article>
+    <article class="panel-card stat-card"><span>已退款</span><strong>{$stats.refunded}</strong><p>已执行退款处理</p></article>
+</section>
+
+<section class="panel-card list-filter-panel">
+    <div class="section-head">
+        <div>
+            <span class="eyebrow">订单控制台</span>
+            <h3>搜索、筛选与快速处理</h3>
+        </div>
+        <div class="button-row">
+            <button id="btn-search" class="button">搜索</button>
+            <button id="btn-reset" class="button button-ghost">重置</button>
+            <button id="btn-export-orders" class="button button-ghost">导出 CSV</button>
+        </div>
+    </div>
+    <div class="list-filter-grid">
+        <label class="field">
+            <span>关键词</span>
+            <input type="text" id="filter-keyword" placeholder="订单号 / 用户ID / 邮箱 / 昵称 / 支付方式" value="{$filters.keyword|default=''}">
+        </label>
+        <label class="field">
+            <span>状态</span>
+            <select id="filter-status">
+                <option value="">全部</option>
+                <option value="pending" {if $filters.status|default='' == 'pending'}selected{/if}>待支付</option>
+                <option value="paid" {if $filters.status|default='' == 'paid'}selected{/if}>已支付</option>
+                <option value="cancelled" {if $filters.status|default='' == 'cancelled'}selected{/if}>已取消</option>
+                <option value="refunded" {if $filters.status|default='' == 'refunded'}selected{/if}>已退款</option>
+            </select>
+        </label>
+        <label class="field">
+            <span>支付方式</span>
+            <input type="text" id="filter-type" placeholder="如 alipay / manual / balance" value="{$filters.type|default=''}">
+        </label>
+        <label class="field">
+            <span>开始日期</span>
+            <input type="date" id="filter-date-from" value="{$filters.date_from|default=''}">
+        </label>
+        <label class="field">
+            <span>结束日期</span>
+            <input type="date" id="filter-date-to" value="{$filters.date_to|default=''}">
+        </label>
+    </div>
+</section>
+
+<section class="panel-card bulk-toolbar" id="bulk-toolbar" hidden>
+    <div class="section-head">
+        <div>
+            <span class="eyebrow">批量操作</span>
+            <h3><span id="bulk-count">0</span> 个订单已选中</h3>
+        </div>
+        <div class="button-row">
+            <button class="button button-ghost" type="button" data-admin-order-batch="paid" data-loading-text="处理中...">批量标记已支付</button>
+            <button class="button button-ghost" type="button" data-admin-order-batch="cancelled" data-loading-text="处理中...">批量取消</button>
+            <button class="button button-danger" type="button" data-admin-order-batch="refunded" data-loading-text="处理中...">批量退款</button>
+        </div>
+    </div>
+</section>
+
+<section class="panel-card">
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" data-bulk-master></th>
+                    <th>订单号</th>
+                    <th>用户</th>
+                    <th>金额</th>
+                    <th>状态</th>
+                    <th>支付方式</th>
+                    <th>时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {volist name="orders" id="order"}
+                <tr>
+                    <td><input type="checkbox" data-bulk-item data-order-no="{$order.no}"></td>
+                    <td>
+                        <code>{$order.no}</code>
+                        <div class="table-sub">{$order.type|default='订单'}</div>
+                    </td>
+                    <td>
+                        <div><strong>{$order.user}</strong></div>
+                        <div class="table-sub">用户ID：{$order.user_id}</div>
+                    </td>
+                    <td>
+                        <div><strong>{$order.amount}</strong></div>
+                        <div class="table-sub">{$order.payment}</div>
+                    </td>
+                    <td><span class="chip">{$order.status}</span></td>
+                    <td>{$order.payment}</td>
+                    <td>
+                        <div>{$order.created_at}</div>
+                        <div class="table-sub">{$order.paid_at|default='未支付'}</div>
+                    </td>
+                    <td class="table-actions">
+                        <div class="button-row compact-action-row">
+                            <button class="button button-secondary button-small" type="button" data-order-detail='{"no":"{$order.no}","user":"{$order.user}","user_id":{$order.user_id},"amount":"{$order.amount}","status":"{$order.status}","payment":"{$order.payment}","created_at":"{$order.created_at}","paid_at":"{$order.paid_at|default=''}"}'>详情</button>
+                            {if condition="$order.status_key == 'paid'"}
+                            <button class="button button-danger button-small" type="button" data-admin-order-action="{$order.no}" data-action="refunded">退款</button>
+                            {elseif condition="$order.status_key == 'pending'" /}
+                            <button class="button button-ghost button-small" type="button" data-admin-order-action="{$order.no}" data-action="cancelled">取消</button>
+                            {/if}
+                            {if condition="$order.status_key == 'pending'"}
+                            <button class="button button-ghost button-small" type="button" data-admin-order-action="{$order.no}" data-action="paid">标记已支付</button>
+                            {/if}
+                        </div>
+                    </td>
+                </tr>
+                {/volist}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<script>
+document.getElementById('btn-search')?.addEventListener('click', () => {
+    const params = new URLSearchParams();
+    [['keyword', 'filter-keyword'], ['status', 'filter-status'], ['type', 'filter-type'], ['date_from', 'filter-date-from'], ['date_to', 'filter-date-to']].forEach(([key, id]) => {
+        const value = document.getElementById(id)?.value || '';
+        if (value) params.append(key, value);
+    });
+    window.location.href = '/admin/orders?' + params.toString();
+});
+
+document.getElementById('btn-reset')?.addEventListener('click', () => {
+    window.location.href = '/admin/orders';
+});
+
+document.querySelectorAll('[data-order-detail]').forEach((button) => {
+    button.addEventListener('click', () => {
+        const detail = JSON.parse(button.dataset.orderDetail || '{}');
+        modalMgr.show('订单详情', [
+            { key: 'no', label: '订单号', value: detail.no || '', type: 'text' },
+            { key: 'user', label: '用户', value: detail.user || '', type: 'text' },
+            { key: 'user_id', label: '用户ID', value: detail.user_id || '', type: 'text' },
+            { key: 'amount', label: '金额', value: detail.amount || '', type: 'text' },
+            { key: 'status', label: '状态', value: detail.status || '', type: 'text' },
+            { key: 'payment', label: '支付方式', value: detail.payment || '', type: 'text' },
+            { key: 'created_at', label: '创建时间', value: detail.created_at || '', type: 'text' },
+            { key: 'paid_at', label: '支付时间', value: detail.paid_at || '未支付', type: 'text' },
+        ], () => {});
+    });
+});
+document.getElementById('btn-export-orders')?.addEventListener('click', async () => {
+    try {
+        const params = new URLSearchParams({ model: 'orders', format: 'csv' });
+        const response = await request('/admin/api/export?' + params.toString(), { method: 'GET' });
+        const csv = response.data.content;
+        const filename = response.data.filename;
+        const blob = new Blob([csv], { type: 'text/csv; charset=utf-8;' });
+        const link = document.createElement('a');
+        link.setAttribute('href', URL.createObjectURL(blob));
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast('已导出 ' + filename, 'success');
+    } catch (error) {
+        toast(error.message || '导出失败', 'error');
+    }
+});
+</script>
+{/block}

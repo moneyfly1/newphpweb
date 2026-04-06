@@ -1,0 +1,147 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="panel-card">
+    <div class="section-head">
+        <div>
+            <span class="eyebrow">购买</span>
+            <h3>购买套餐</h3>
+            <p class="topbar-copy">选择适合你的套餐，开启全新体验。</p>
+        </div>
+        <div class="button-row">
+            <span class="eyebrow">账户余额</span>
+            <strong class="text-brand panel-emphasis">¥{$currentUser.balance|number_format=2}</strong>
+            <a href="/recharge" class="button button-ghost">充值</a>
+        </div>
+    </div>
+</section>
+
+<section class="package-grid">
+    {foreach name="packages" item="package"}
+    <label class="panel-card package-card" data-package-id="{$package.id}">
+        <span class="eyebrow">套餐</span>
+        <h3>{$package.name}</h3>
+        <p class="topbar-copy">{$package.description}</p>
+
+        <div class="summary-list">
+            <div><span>设备数量</span><strong>{$package.device_limit} 个</strong></div>
+            {if condition="$package.speed_limit_mbps > 0"}
+            <div><span>速度</span><strong>{$package.speed_limit_mbps} Mbps</strong></div>
+            {/if}
+        </div>
+
+        <div class="format-list" style="margin-top: 1rem;">
+            <label class="format-card">
+                <input type="radio" name="duration_{$package.id}" value="1" checked class="hidden-radio">
+                <div><span>1个月</span></div>
+                <strong class="text-brand">¥{$package.price_monthly|number_format=2}</strong>
+            </label>
+            {if condition="$package.price_quarterly > 0"}
+            <label class="format-card">
+                <input type="radio" name="duration_{$package.id}" value="3" class="hidden-radio">
+                <div><span>3个月</span> <span class="chip chip-success">省10%</span></div>
+                <strong class="text-brand">¥{$package.price_quarterly|number_format=2}</strong>
+            </label>
+            {/if}
+            {if condition="$package.price_yearly > 0"}
+            <label class="format-card">
+                <input type="radio" name="duration_{$package.id}" value="12" class="hidden-radio">
+                <div><span>12个月</span> <span class="chip chip-success">省20%</span></div>
+                <strong class="text-brand">¥{$package.price_yearly|number_format=2}</strong>
+            </label>
+            {/if}
+        </div>
+
+        <button class="btn-purchase-package button button-primary button-block" data-package-id="{$package.id}" style="margin-top: 1rem;">
+            购买
+        </button>
+    </label>
+    {/foreach}
+</section>
+
+<script>
+let currentPackage = null;
+
+document.querySelectorAll('.btn-purchase-package').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const packageId = parseInt(btn.dataset.packageId);
+        const card = document.querySelector(`.package-card[data-package-id="${packageId}"]`);
+        const radio = card.querySelector('input[type="radio"]:checked');
+        const months = parseInt(radio?.value || '1');
+        const priceNode = radio?.closest('.format-card')?.querySelector('.text-brand');
+        const price = priceNode ? Number((priceNode.textContent || '').replace(/[^0-9.]/g, '')) : 0;
+        const packageName = card.querySelector('h3')?.textContent || '套餐';
+
+        currentPackage = { id: packageId, name: packageName, months, price };
+
+        const fields = [
+            { key: 'info_name', label: '套餐名称', value: packageName, type: 'text' },
+            { key: 'info_months', label: '购买周期', value: months + ' 个月', type: 'text' },
+            { key: 'info_price', label: '应付金额', value: '¥' + price.toFixed(2), type: 'text' },
+            { key: 'coupon_code', label: '优惠码（可选）', value: '', type: 'text' },
+            { key: 'payment_method', label: '支付方式', value: 'alipay', type: 'select', options: [
+                { value: 'balance', label: '余额支付' },
+                { value: 'alipay', label: '支付宝' },
+                { value: 'wxpay', label: '微信支付' },
+            ]},
+        ];
+
+        modalMgr.show('确认购买', fields, async (data) => {
+            try {
+                const response = await request('/api/purchase-package', {
+                    method: 'POST',
+                    body: {
+                        package_id: currentPackage.id,
+                        months: currentPackage.months,
+                        payment_method: data.payment_method || 'balance',
+                        coupon_code: data.coupon_code || '',
+                    }
+                });
+                toast(response.message || '订单已创建');
+                if (response.data.qr_code) {
+                    // 显示二维码弹窗
+                    modalMgr.show('扫码支付', [
+                        { key: 'qr_info', label: '请使用手机扫描二维码完成支付', value: '', type: 'text' },
+                    ], () => {});
+                    // 在弹窗中插入二维码图片
+                    const qrImg = document.createElement('img');
+                    qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' + encodeURIComponent(response.data.qr_code);
+                    qrImg.style.cssText = 'display:block;margin:1rem auto;border-radius:12px;';
+                    document.getElementById('modal-fields')?.prepend(qrImg);
+                    // 开始轮询支付状态
+                    const orderNo = response.data.order_no;
+                    if (orderNo) {
+                        const pollInterval = setInterval(async () => {
+                            try {
+                                const statusResp = await request('/api/order/' + orderNo + '/status');
+                                if (statusResp.data.status === 'paid') {
+                                    clearInterval(pollInterval);
+                                    toast('支付成功', 'success');
+                                    window.setTimeout(() => window.location.href = '/subscriptions', 800);
+                                }
+                            } catch (e) {}
+                        }, 3000);
+                        setTimeout(() => clearInterval(pollInterval), 300000);
+                    }
+                } else if (response.data.payment_url) {
+                    // 手机端直接跳转
+                    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                        window.location.href = response.data.payment_url;
+                    } else {
+                        window.open(response.data.payment_url, '_blank');
+                        toast('请在新窗口完成支付', 'info');
+                    }
+                }
+                if (response.data.status === 'paid') {
+                    window.setTimeout(() => window.location.href = '/subscriptions', 600);
+                }
+            } catch (error) {
+                toast(error.message, 'error');
+            }
+        });
+    });
+});
+</script>
+{/block}

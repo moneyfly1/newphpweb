@@ -1,0 +1,142 @@
+{extend name="layout/app" /}
+
+{block name="content"}
+<section class="stats-grid">
+    <article class="panel-card stat-card"><span>工单总数</span><strong>{$ticketSummary.total}</strong><p>当前筛选结果</p></article>
+    <article class="panel-card stat-card"><span>待处理</span><strong>{$ticketSummary.open}</strong><p>等待客服跟进</p></article>
+    <article class="panel-card stat-card"><span>已回复</span><strong>{$ticketSummary.replied}</strong><p>已回到用户侧</p></article>
+    <article class="panel-card stat-card"><span>已关闭</span><strong>{$ticketSummary.closed}</strong><p>无需继续处理</p></article>
+</section>
+
+<section class="panel-card list-filter-panel">
+    <div class="section-head">
+        <div>
+            <span class="eyebrow">工单控制台</span>
+            <h3>搜索、回复与批量处理</h3>
+        </div>
+        <div class="button-row">
+            <button id="btn-search" class="button">搜索</button>
+            <button id="btn-reset" class="button button-ghost">重置</button>
+        </div>
+    </div>
+    <div class="list-filter-grid">
+        <label class="field">
+            <span>关键词</span>
+            <input type="text" id="filter-keyword" placeholder="工单号 / 用户ID / 邮箱 / 用户名 / 标题" value="{$filters.keyword|default=''}">
+        </label>
+        <label class="field">
+            <span>状态</span>
+            <select id="filter-status">
+                <option value="">全部</option>
+                <option value="open" {if $filters.status|default='' == 'open'}selected{/if}>待处理</option>
+                <option value="replied" {if $filters.status|default='' == 'replied'}selected{/if}>已回复</option>
+                <option value="closed" {if $filters.status|default='' == 'closed'}selected{/if}>已关闭</option>
+            </select>
+        </label>
+        <label class="field">
+            <span>优先级</span>
+            <select id="filter-type">
+                <option value="">全部</option>
+                <option value="normal" {if $filters.type|default='' == 'normal'}selected{/if}>普通</option>
+                <option value="high" {if $filters.type|default='' == 'high'}selected{/if}>高优先级</option>
+                <option value="urgent" {if $filters.type|default='' == 'urgent'}selected{/if}>紧急</option>
+            </select>
+        </label>
+        <label class="field">
+            <span>开始日期</span>
+            <input type="date" id="filter-date-from" value="{$filters.date_from|default=''}">
+        </label>
+        <label class="field">
+            <span>结束日期</span>
+            <input type="date" id="filter-date-to" value="{$filters.date_to|default=''}">
+        </label>
+    </div>
+</section>
+
+<section class="panel-card bulk-toolbar" id="bulk-toolbar" hidden>
+    <div class="section-head">
+        <div>
+            <span class="eyebrow">批量操作</span>
+            <h3><span id="bulk-count">0</span> 个工单已选中</h3>
+        </div>
+        <div class="button-row">
+            <button class="button button-ghost" type="button" data-admin-ticket-batch="processing" data-loading-text="处理中...">批量标记处理中</button>
+            <button class="button button-danger" type="button" data-admin-ticket-batch="close" data-loading-text="处理中...">批量关闭</button>
+        </div>
+    </div>
+</section>
+
+<section class="panel-card">
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" data-bulk-master></th>
+                    <th>ID</th>
+                    <th>工单号</th>
+                    <th>用户</th>
+                    <th>标题</th>
+                    <th>状态</th>
+                    <th>优先级</th>
+                    <th>更新时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {volist name="tickets" id="ticket"}
+                <tr>
+                    <td><input type="checkbox" data-bulk-item data-ticket-id="{$ticket.id}"></td>
+                    <td>{$ticket.id}</td>
+                    <td><code>{$ticket.no}</code></td>
+                    <td>
+                        <div><strong>{$ticket.user}</strong></div>
+                        <div class="table-sub">用户ID：{$ticket.user_id}</div>
+                    </td>
+                    <td>{$ticket.subject}</td>
+                    <td><span class="chip">{$ticket.status}</span></td>
+                    <td>{$ticket.priority}</td>
+                    <td>{$ticket.updated_at}</td>
+                    <td class="table-actions">
+                        <div class="button-row compact-action-row">
+                            <button class="button button-ghost button-small" type="button" data-admin-ticket-reply="{$ticket.no}">回复</button>
+                            <button class="button button-secondary button-small" type="button" data-ticket-detail='{"id":{$ticket.id},"no":"{$ticket.no}","user":"{$ticket.user}","user_id":{$ticket.user_id},"subject":"{$ticket.subject}","status":"{$ticket.status}","priority":"{$ticket.priority}","updated_at":"{$ticket.updated_at}"}'>详情</button>
+                        </div>
+                    </td>
+                </tr>
+                {/volist}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<script>
+document.getElementById('btn-search')?.addEventListener('click', () => {
+    const params = new URLSearchParams();
+    [['keyword', 'filter-keyword'], ['status', 'filter-status'], ['type', 'filter-type'], ['date_from', 'filter-date-from'], ['date_to', 'filter-date-to']].forEach(([key, id]) => {
+        const value = document.getElementById(id)?.value || '';
+        if (value) params.append(key, value);
+    });
+    window.location.href = '/admin/tickets?' + params.toString();
+});
+
+document.getElementById('btn-reset')?.addEventListener('click', () => {
+    window.location.href = '/admin/tickets';
+});
+
+document.querySelectorAll('[data-ticket-detail]').forEach((button) => {
+    button.addEventListener('click', () => {
+        const detail = JSON.parse(button.dataset.ticketDetail || '{}');
+        modalMgr.show('工单详情', [
+            { key: 'id', label: '工单ID', value: detail.id || '', type: 'text' },
+            { key: 'no', label: '工单号', value: detail.no || '', type: 'text' },
+            { key: 'user', label: '用户', value: detail.user || '', type: 'text' },
+            { key: 'user_id', label: '用户ID', value: detail.user_id || '', type: 'text' },
+            { key: 'subject', label: '标题', value: detail.subject || '', type: 'text' },
+            { key: 'status', label: '状态', value: detail.status || '', type: 'text' },
+            { key: 'priority', label: '优先级', value: detail.priority || '', type: 'text' },
+            { key: 'updated_at', label: '更新时间', value: detail.updated_at || '', type: 'text' },
+        ], () => {});
+    });
+});
+</script>
+{/block}

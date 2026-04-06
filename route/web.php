@@ -20,8 +20,6 @@ Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/verification-code', [AuthController::class, 'sendVerificationCode']);
 Route::post('/logout', [AuthController::class, 'logout']);
 Route::post('/captcha/refresh', [AuthController::class, 'refreshCaptcha']);
-Route::post('/admin/enter-user/:id', [AuthController::class, 'adminEnterUser']);
-Route::post('/admin/exit-user', [AuthController::class, 'adminExitUser']);
 
 // 订阅下载（通过 token 验证）
 Route::get('sub/:token/:format', [UserApiController::class, 'downloadSubscription']);

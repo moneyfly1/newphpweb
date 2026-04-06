@@ -50,6 +50,8 @@ Route::group('/admin/api/stats', function (): void {
 Route::group('/admin', function (): void {
     Route::get('/', [AdminDashboardController::class, 'index']);
     Route::get('/dashboard', [AdminDashboardController::class, 'index']);
+    Route::post('/enter-user/:id', [\app\controller\AuthController::class, 'adminEnterUser']);
+    Route::post('/exit-user', [\app\controller\AuthController::class, 'adminExitUser']);
     Route::get('/analysis', [AdminDashboardController::class, 'analysis']);
     Route::get('/statistics', [AdminDashboardController::class, 'statistics']);
     Route::get('/users', [AdminUserController::class, 'index']);

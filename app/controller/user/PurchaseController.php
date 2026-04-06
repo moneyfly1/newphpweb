@@ -11,7 +11,7 @@ class PurchaseController extends BaseController
     {
         // 获取所有活跃套餐
         $packages = \app\model\Package::where('is_active', 1)
-            ->orderBy('sort_order', 'asc')
+            ->order('sort_order', 'asc')
             ->select();
 
         return $this->render('user/purchase', [

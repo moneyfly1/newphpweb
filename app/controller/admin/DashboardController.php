@@ -11,7 +11,11 @@ class DashboardController extends BaseController
     {
         $stats = $this->panel->systemStatistics('7day');
         $recentLogins = $this->panel->getRecentLogins(8);
-        $suspiciousLogins = $this->panel->detectSuspiciousLogins();
+        $suspiciousRaw = $this->panel->detectSuspiciousLogins();
+        $suspiciousLogins = [
+            'total_alerts' => count($suspiciousRaw),
+            'items' => $suspiciousRaw,
+        ];
 
         return $this->render('admin/dashboard', array_merge($this->panel->adminDashboard(), [
             'navKey'            => 'admin-dashboard',

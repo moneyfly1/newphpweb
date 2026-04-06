@@ -611,5 +611,89 @@ class AdminActionController extends BaseController
             return $this->jsonError('支付宝配置测试失败: ' . $e->getMessage(), 422);
         }
     }
+
+    public function resetUserPassword(int $id)
+    {
+        $this->requireCsrf();
+        try {
+            $data = $this->panel->resetUserPassword($id);
+            return $this->jsonSuccess('密码已重置。', $data);
+        } catch (\RuntimeException $e) {
+            return $this->jsonError($e->getMessage(), 422);
+        }
+    }
+
+    public function saveSiteSettings()
+    {
+        $this->requireCsrf();
+        try {
+            $this->panel->saveSiteSettings($this->request->post());
+            return $this->jsonSuccess('站点设置已保存。');
+        } catch (\RuntimeException $e) {
+            return $this->jsonError($e->getMessage(), 422);
+        }
+    }
+
+    public function saveEmailSettings()
+    {
+        $this->requireCsrf();
+        try {
+            $settings = app(\app\service\AdminSettingsService::class);
+            $settings->saveEmailSettings($this->request->post());
+            return $this->jsonSuccess('邮件设置已保存。');
+        } catch (\RuntimeException $e) {
+            return $this->jsonError($e->getMessage(), 422);
+        }
+    }
+
+    public function saveNotificationSettings()
+    {
+        $this->requireCsrf();
+        try {
+            $settings = app(\app\service\AdminSettingsService::class);
+            $settings->saveNotificationSettings($this->request->post());
+            return $this->jsonSuccess('通知设置已保存。');
+        } catch (\RuntimeException $e) {
+            return $this->jsonError($e->getMessage(), 422);
+        }
+    }
+
+    public function saveThemeSettings()
+    {
+        $this->requireCsrf();
+        try {
+            $settings = app(\app\service\AdminSettingsService::class);
+            $settings->saveThemeSettings($this->request->post());
+            return $this->jsonSuccess('主题设置已保存。');
+        } catch (\RuntimeException $e) {
+            return $this->jsonError($e->getMessage(), 422);
+        }
+    }
+
+    public function testEmail()
+    {
+        $this->requireCsrf();
+        try {
+            $to = trim((string) $this->request->post('to_email', ''));
+            if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+                throw new \RuntimeException('请输入有效的测试邮箱地址。');
+            }
+            \app\service\MailService::queue(null, $to, '测试邮件 - ' . $this->settings->appName(), '这是一封测试邮件，如果您收到说明邮件配置正确。', '<p>这是一封测试邮件，如果您收到说明邮件配置正确。</p>', 'notification');
+            return $this->jsonSuccess('测试邮件已加入发送队列。');
+        } catch (\RuntimeException $e) {
+            return $this->jsonError($e->getMessage(), 422);
+        }
+    }
+
+    public function clearSubscriptionDevices(int $id)
+    {
+        $this->requireCsrf();
+        try {
+            $data = $this->panel->clearSubscriptionDevicesByAdmin($id);
+            return $this->jsonSuccess('设备已清空。', $data);
+        } catch (\RuntimeException $e) {
+            return $this->jsonError($e->getMessage(), 422);
+        }
+    }
 }
 

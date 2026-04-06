@@ -233,8 +233,12 @@ class PanelService
 
     public function adminDashboard(): array
     {
-        $todayRevenue = (float) Order::whereDay('paid_at')->where('status', 'paid')->sum('amount_payable');
-        $monthRevenue = (float) Order::whereMonth('paid_at')->where('status', 'paid')->sum('amount_payable');
+        $today = date('Y-m-d');
+        $monthStart = date('Y-m-01 00:00:00');
+        $monthEnd = date('Y-m-t 23:59:59');
+
+        $todayRevenue = (float) Order::where('status', 'paid')->whereRaw("DATE(paid_at) = ?", [$today])->sum('amount_payable');
+        $monthRevenue = (float) Order::where('status', 'paid')->whereBetween('paid_at', [$monthStart, $monthEnd])->sum('amount_payable');
         $totalRevenue = (float) Order::where('status', 'paid')->sum('amount_payable');
         $activeUsers = User::where('status', 1)->count();
         $totalUsers = User::count();
@@ -630,7 +634,7 @@ class PanelService
     {
         return AuditLog::where('action', 'login')->where('target_type', 'user')->where('target_id', $userId)
             ->order('created_at', 'desc')->limit($limit)->select()->map(fn ($log) => [
-                'logged_in_at' => $log['created_at'] ?? '', 'details' => isset($log['old_values']) && $log['old_values'] ? json_decode($log['old_values'], true) : [],
+                'logged_in_at' => $log['created_at'] ?? '', 'details' => isset($log['detail_json']) && $log['detail_json'] ? json_decode($log['detail_json'], true) : [],
             ])->toArray();
     }
 

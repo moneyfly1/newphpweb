@@ -49,8 +49,7 @@ class SubscriptionAccessLog extends BaseModel
     public static function groupByProtocol($days = 7)
     {
         $date = date('Y-m-d H:i:s', time() - $days * 86400);
-        return static::query()
-            ->alias('a')
+        return static::alias('a')
             ->join('subscriptions s', 'a.subscription_id = s.id')
             ->where('a.accessed_at', '>=', $date)
             ->field('a.format, COUNT(*) as count')

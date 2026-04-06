@@ -91,6 +91,14 @@ class AuthService
         return (bool) ((Session::get(self::SESSION_KEY)['is_shadow'] ?? false));
     }
 
+    public function logout(): void
+    {
+        Session::delete(self::SESSION_KEY);
+        Session::delete(self::ADMIN_SHADOW_KEY);
+        Session::delete(self::ADMIN_SHADOW_TARGET_KEY);
+        Session::delete(self::CSRF_KEY);
+    }
+
     public function csrfToken(): string
     {
         $token = Session::get(self::CSRF_KEY);

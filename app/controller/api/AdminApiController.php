@@ -28,7 +28,6 @@ class AdminApiController extends BaseController
         $this->collector = app(NodeCollectorService::class);
         $this->parser = app(NodeParserService::class);
         $this->formatter = app(SubscriptionFormatService::class);
-        $this->requireAdmin();
     }
 
     /**
@@ -47,20 +46,20 @@ class AdminApiController extends BaseController
         $limit = (int)$request->param('limit', 20);
         $search = $request->param('search', '');
 
-        $query = NodeSource::query();
+        $where = [];
         if ($search) {
-            $query->where('name', 'like', "%{$search}%")->orWhere('source_url', 'like', "%{$search}%");
+            $where[] = ['name|source_url', 'like', "%{$search}%"];
         }
 
-        $total = $query->count();
-        $sources = $query
-            ->orderBy('priority', 'desc')
-            ->orderBy('id', 'desc')
+        $total = NodeSource::where($where)->count();
+        $sources = NodeSource::where($where)
+            ->order('priority', 'desc')
+            ->order('id', 'desc')
             ->offset(($page - 1) * $limit)
             ->limit($limit)
             ->select();
 
-        return $this->jsonSuccess([
+        return $this->jsonSuccess('查询成功', [
             'items' => $sources,
             'total' => $total,
             'page' => $page,
@@ -99,7 +98,7 @@ class AdminApiController extends BaseController
             'is_enabled' => $data['is_enabled'] ?? true,
         ]);
 
-        return $this->jsonSuccess(['id' => $source->id], '创建成功');
+        return $this->jsonSuccess('创建成功', ['id' => $source->id]);
     }
 
     /**
@@ -118,7 +117,7 @@ class AdminApiController extends BaseController
 
         $source->save($data);
 
-        return $this->jsonSuccess([], '更新成功');
+        return $this->jsonSuccess('更新成功');
     }
 
     /**
@@ -137,7 +136,7 @@ class AdminApiController extends BaseController
 
         $source->delete();
 
-        return $this->jsonSuccess([], '删除成功');
+        return $this->jsonSuccess('删除成功');
     }
 
     /**
@@ -157,7 +156,7 @@ class AdminApiController extends BaseController
 
         try {
             $result = $this->collector->collectFromSource($source);
-            return $this->jsonSuccess($result, '采集成功');
+            return $this->jsonSuccess('采集成功', $result);
         } catch (\Exception $e) {
             return $this->jsonError('采集失败：' . $e->getMessage(), 500);
         }
@@ -183,7 +182,7 @@ class AdminApiController extends BaseController
                 ];
             }
 
-            return $this->jsonSuccess(['results' => $results], '采集完成');
+            return $this->jsonSuccess('采集完成', ['results' => $results]);
         } catch (\Exception $e) {
             return $this->jsonError('采集失败：' . $e->getMessage(), 500);
         }
@@ -198,11 +197,11 @@ class AdminApiController extends BaseController
         $limit = (int)$request->param('limit', 10);
 
         $logs = NodeParseLog::where('source_id', $id)
-            ->orderBy('created_at', 'desc')
+            ->order('created_at', 'desc')
             ->limit($limit)
             ->select();
 
-        return $this->jsonSuccess(['items' => $logs]);
+        return $this->jsonSuccess('查询成功', ['items' => $logs]);
     }
 
     /**
@@ -260,23 +259,16 @@ class AdminApiController extends BaseController
         $limit = (int)$request->param('limit', 20);
         $search = $request->param('search', '');
 
-        $query = ProxyNode::query();
+        $query = ProxyNode::where('1=1');
 
-        // 搜索
         if ($search) {
-            $query->where('name', 'like', "%{$search}%")
-                ->orWhere('server', 'like', "%{$search}%");
+            $query->where('name|server', 'like', "%{$search}%");
         }
-
-        // 筛选条件
         if ($protocol = $request->param('protocol')) {
             $query->where('protocol', $protocol);
         }
         if ($isActive = $request->param('is_active')) {
             $query->where('is_active', $isActive);
-        }
-        if ($isManual = $request->param('is_manual')) {
-            $query->where('is_manual', $isManual);
         }
         if ($subId = (int)$request->param('subscription_id')) {
             $query->where('subscription_id', $subId);
@@ -284,7 +276,7 @@ class AdminApiController extends BaseController
 
         $total = $query->count();
         $nodes = $query
-            ->orderBy('id', 'desc')
+            ->order('id', 'desc')
             ->offset(($page - 1) * $limit)
             ->limit($limit)
             ->select();
@@ -310,8 +302,8 @@ class AdminApiController extends BaseController
 
         $total = $query->count();
         $nodes = $query
-            ->orderBy('is_active', 'desc')
-            ->orderBy('priority', 'desc')
+            ->order('is_active', 'desc')
+            ->order('priority', 'desc')
             ->offset(($page - 1) * $limit)
             ->limit($limit)
             ->select();
@@ -334,7 +326,7 @@ class AdminApiController extends BaseController
         }
 
         $node->delete();
-        return $this->jsonSuccess([], '删除成功');
+        return $this->jsonSuccess('删除成功');
     }
 
     /**
@@ -350,7 +342,7 @@ class AdminApiController extends BaseController
 
         ProxyNode::whereIn('id', $ids)->delete();
 
-        return $this->jsonSuccess([], count($ids) . ' 个节点已删除');
+        return $this->jsonSuccess(count($ids) . ' 个节点已删除');
     }
 
     /**
@@ -386,10 +378,10 @@ class AdminApiController extends BaseController
             $subscriptionId > 0 ? $subscriptionId : null
         );
 
-        return $this->jsonSuccess([
+        return $this->jsonSuccess('导入完成', [
             'imported_count' => $result['imported_count'] ?? 0,
             'failed_count' => $result['failed_count'] ?? 0,
-        ], '导入完成');
+        ]);
     }
 
     /**
@@ -412,7 +404,7 @@ class AdminApiController extends BaseController
 
         $node->save();
 
-        return $this->jsonSuccess([], '更新成功');
+        return $this->jsonSuccess('更新成功');
     }
 
     /**

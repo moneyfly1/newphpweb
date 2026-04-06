@@ -215,7 +215,7 @@ class MailService
         try {
             $failed = EmailQueue::where('status', 'failed')
                 ->where('attempts', '<', $maxAttempts)
-                ->get();
+                ->select();
 
             $retried = 0;
             foreach ($failed as $email) {

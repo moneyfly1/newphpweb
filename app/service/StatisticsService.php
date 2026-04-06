@@ -15,17 +15,15 @@ use think\facade\Db;
 
 class StatisticsService
 {
-    /**
-     * 获取系统统计数据
-     */
     public function systemStatistics(string $period = '7day'): array
     {
-        // 根据期间计算日期范围
         $dates = $this->getDateRange($period);
         $startDate = $dates['start'];
         $endDate = $dates['end'];
+        $today = date('Y-m-d');
+        $monthStart = date('Y-m-01 00:00:00');
+        $monthEnd = date('Y-m-t 23:59:59');
 
-        // === KPI 数据 ===
         $stats = [
             'users_total' => User::count(),
             'users_active' => User::where('status', 1)->count(),
@@ -45,61 +43,39 @@ class StatisticsService
             'packages_active' => Package::where('is_active', 1)->count(),
             'coupons_active' => Coupon::where('status', 1)->count(),
 
-            'revenue_today' => Order::where('status', 'paid')
-                ->whereDate('paid_at', date('Y-m-d'))
-                ->sum('amount_payable') ?? 0,
-            'revenue_month' => Order::where('status', 'paid')
-                ->whereMonth('paid_at', date('m'))
-                ->whereYear('paid_at', date('Y'))
-                ->sum('amount_payable') ?? 0,
-            'revenue_total' => Order::where('status', 'paid')
+            'revenue_today' => (float) Order::where('status', 'paid')
+                ->whereRaw("DATE(paid_at) = ?", [$today])
+                ->sum('amount_payable'),
+            'revenue_month' => (float) Order::where('status', 'paid')
+                ->whereBetween('paid_at', [$monthStart, $monthEnd])
+                ->sum('amount_payable'),
+            'revenue_total' => (float) Order::where('status', 'paid')
                 ->whereBetween('paid_at', [$startDate, $endDate])
-                ->sum('amount_payable') ?? 0,
+                ->sum('amount_payable'),
         ];
 
-        // === 每日趋势数据 ===
         $stats['daily_revenue'] = $this->getDailyRevenue($startDate, $endDate);
         $stats['daily_users'] = $this->getDailyUsers($startDate, $endDate);
-
-        // === 套餐统计 ===
         $stats['package_stats'] = $this->getPackageStatistics($startDate, $endDate);
-
-        // === 支付方式统计 ===
         $stats['payment_stats'] = $this->getPaymentStatistics($startDate, $endDate);
-
-        // === 地理位置统计 ===
-        $stats['geo_stats'] = $this->getGeoStatistics($startDate, $endDate);
+        $stats['geo_stats'] = $this->getGeoStatistics();
 
         return $stats;
     }
 
-    /**
-     * 获取日期范围
-     */
     private function getDateRange(string $period): array
     {
         $end = new \DateTime();
         $start = clone $end;
 
-        switch ($period) {
-            case '1day':
-                $start->modify('-1 day');
-                break;
-            case '7day':
-                $start->modify('-7 days');
-                break;
-            case '30day':
-                $start->modify('-30 days');
-                break;
-            case '90day':
-                $start->modify('-90 days');
-                break;
-            case 'all':
-                $start = new \DateTime('2020-01-01');
-                break;
-            default:
-                $start->modify('-7 days');
-        }
+        match ($period) {
+            '1day' => $start->modify('-1 day'),
+            '7day' => $start->modify('-7 days'),
+            '30day' => $start->modify('-30 days'),
+            '90day' => $start->modify('-90 days'),
+            'all' => $start = new \DateTime('2020-01-01'),
+            default => $start->modify('-7 days'),
+        };
 
         return [
             'start' => $start->format('Y-m-d H:i:s'),
@@ -107,82 +83,58 @@ class StatisticsService
         ];
     }
 
-    /**
-     * 获取每日收入数据
-     */
     private function getDailyRevenue(string $startDate, string $endDate): array
     {
-        $dailyData = Order::where('status', 'paid')
-            ->whereBetween('paid_at', [$startDate, $endDate])
-            ->selectRaw('DATE(paid_at) as date, SUM(amount_payable) as amount')
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get()
-            ->toArray();
+        $rows = Db::table('orders')
+            ->whereRaw("status = 'paid' AND paid_at BETWEEN ? AND ?", [$startDate, $endDate])
+            ->fieldRaw("DATE(paid_at) as d, SUM(amount_payable) as amount")
+            ->group('d')->order('d')->select()->toArray();
 
         $dates = [];
         $amounts = [];
-
-        foreach ($dailyData as $record) {
-            $dates[] = $record['date'];
-            $amounts[] = $record['amount'] ?? 0;
+        foreach ($rows as $r) {
+            $dates[] = $r['d'];
+            $amounts[] = (float) ($r['amount'] ?? 0);
         }
-
-        return [
-            'dates' => $dates,
-            'amounts' => $amounts,
-        ];
+        return ['dates' => $dates, 'amounts' => $amounts];
     }
 
-    /**
-     * 获取每日新增用户数
-     */
     private function getDailyUsers(string $startDate, string $endDate): array
     {
-        $dailyData = User::whereBetween('created_at', [$startDate, $endDate])
-            ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get()
-            ->toArray();
+        $rows = Db::table('users')
+            ->whereRaw("created_at BETWEEN ? AND ?", [$startDate, $endDate])
+            ->fieldRaw("DATE(created_at) as d, COUNT(*) as cnt")
+            ->group('d')->order('d')->select()->toArray();
 
         $dates = [];
         $counts = [];
-
-        foreach ($dailyData as $record) {
-            $dates[] = $record['date'];
-            $counts[] = $record['count'] ?? 0;
+        foreach ($rows as $r) {
+            $dates[] = $r['d'];
+            $counts[] = (int) ($r['cnt'] ?? 0);
         }
-
-        return [
-            'dates' => $dates,
-            'counts' => $counts,
-        ];
+        return ['dates' => $dates, 'counts' => $counts];
     }
 
-    /**
-     * 获取套餐统计数据
-     */
+    // __PLACEHOLDER_STATS_2__
+
     private function getPackageStatistics(string $startDate, string $endDate): array
     {
-        $packages = Package::where('is_active', 1)->get();
-        $periodRevenue = Order::where('status', 'paid')
+        $packages = Package::where('is_active', 1)->order('sort_order')->select();
+        $periodRevenue = (float) Order::where('status', 'paid')
             ->whereBetween('paid_at', [$startDate, $endDate])
-            ->sum('amount_payable') ?? 0;
+            ->sum('amount_payable');
 
-        // Batch load subscription counts
         $subRows = Subscription::field('package_id, status, COUNT(*) as cnt')
             ->group('package_id, status')->select()->toArray();
         $subMap = [];
         foreach ($subRows as $r) {
             $pid = $r['package_id'];
             if (!isset($subMap[$pid])) { $subMap[$pid] = ['total' => 0, 'active' => 0, 'expired' => 0]; }
-            $subMap[$pid]['total'] += $r['cnt'];
-            if ($r['status'] === 'active') { $subMap[$pid]['active'] += $r['cnt']; }
-            if ($r['status'] === 'expired') { $subMap[$pid]['expired'] += $r['cnt']; }
+            $subMap[$pid]['total'] += (int) $r['cnt'];
+            if ($r['status'] === 'active') { $subMap[$pid]['active'] += (int) $r['cnt']; }
+            if ($r['status'] === 'expired') { $subMap[$pid]['expired'] += (int) $r['cnt']; }
         }
 
-        // Batch load revenue per package
         $revRows = Order::where('status', 'paid')
             ->whereBetween('paid_at', [$startDate, $endDate])
             ->field('package_id, SUM(amount_payable) as revenue')
@@ -200,217 +152,222 @@ class StatisticsService
                 'active_subscriptions' => $s['active'],
                 'expired_subscriptions' => $s['expired'],
                 'monthly_revenue' => $rev,
-                'percentage' => $periodRevenue > 0 ? ($rev / $periodRevenue * 100) : 0,
+                'percentage' => $periodRevenue > 0 ? round($rev / $periodRevenue * 100, 1) : 0,
             ];
         }
-
         return $stats;
     }
 
-    /**
-     * 获取支付方式统计
-     */
     private function getPaymentStatistics(string $startDate, string $endDate): array
     {
-        $paymentMethods = [
-            'manual' => '人工转账',
-            'alipay' => '支付宝',
-            'wechat' => '微信',
-            'stripe' => 'Stripe',
+        $rows = Db::table('orders')
+            ->whereRaw("status = 'paid' AND paid_at BETWEEN ? AND ?", [$startDate, $endDate])
+            ->fieldRaw("payment_method, COUNT(*) as cnt, SUM(amount_payable) as total")
+            ->group('payment_method')->select()->toArray();
+
+        $totalAmount = 0;
+        foreach ($rows as $r) { $totalAmount += (float) $r['total']; }
+
+        $labels = [
+            'manual' => '人工转账', 'alipay' => '支付宝', 'wechat' => '微信',
+            'stripe' => 'Stripe', 'balance' => '余额支付', 'usdt' => 'USDT',
         ];
 
-        $totalAmount = Order::where('status', 'paid')
-            ->whereBetween('paid_at', [$startDate, $endDate])
-            ->sum('amount_payable') ?? 0;
-
         $stats = [];
-
-        foreach ($paymentMethods as $method => $label) {
-            $orders = Order::where('status', 'paid')
-                ->where('payment_method', $method)
-                ->whereBetween('paid_at', [$startDate, $endDate])
-                ->get();
-
-            $count = $orders->count();
-            $amount = $orders->sum('amount_payable') ?? 0;
-            $avg = $count > 0 ? $amount / $count : 0;
-
-            if ($count > 0) {
-                $stats[] = [
-                    'method' => $label,
-                    'order_count' => $count,
-                    'total_amount' => $amount,
-                    'avg_amount' => $avg,
-                    'percentage' => $totalAmount > 0 ? ($amount / $totalAmount * 100) : 0,
-                ];
-            }
+        foreach ($rows as $r) {
+            $method = $r['payment_method'] ?? 'unknown';
+            $cnt = (int) $r['cnt'];
+            $amount = (float) $r['total'];
+            $stats[] = [
+                'method' => $labels[$method] ?? $method,
+                'order_count' => $cnt,
+                'total_amount' => $amount,
+                'avg_amount' => $cnt > 0 ? round($amount / $cnt, 2) : 0,
+                'percentage' => $totalAmount > 0 ? round($amount / $totalAmount * 100, 1) : 0,
+            ];
         }
-
         return $stats;
     }
 
-    /**
-     * 获取地理位置统计
-     */
-    private function getGeoStatistics(string $startDate, string $endDate): array
+    private function getGeoStatistics(): array
     {
-        // 如果有 user_login_logs 表且包含位置信息，使用该表
-        // 否则返回按国家的用户统计
-
-        $geoData = [];
-
         try {
-            // 尝试从登录日志中获取地理信息
-            $logs = \DB::table('user_login_logs')
-                ->selectRaw('country, COUNT(DISTINCT user_id) as user_count, SUM(COALESCE((SELECT SUM(amount_payable) FROM `orders` WHERE user_id = user_login_logs.user_id AND status = "paid"), 0)) as revenue')
-                ->whereNotNull('country')
-                ->whereBetween('created_at', [$startDate, $endDate])
-                ->groupBy('country')
-                ->orderByDesc('user_count')
-                ->limit(10)
-                ->get();
+            $rows = Db::table('user_login_logs')
+                ->where('country', '<>', '')
+                ->fieldRaw("country, COUNT(DISTINCT user_id) as user_count")
+                ->group('country')->order('user_count', 'desc')
+                ->limit(10)->select()->toArray();
 
-            foreach ($logs as $record) {
-                $geoData[] = [
-                    'country' => $record->country ?: '未知',
-                    'user_count' => $record->user_count ?? 0,
-                    'revenue' => $record->revenue ?? 0,
-                ];
+            if (!empty($rows)) {
+                return array_map(fn($r) => [
+                    'country' => $r['country'] ?: '未知',
+                    'user_count' => (int) ($r['user_count'] ?? 0),
+                    'revenue' => 0,
+                ], $rows);
             }
-        } catch (\Exception $e) {
-            // 灰雅降级：按用户统计
-            $geoData = [];
-        }
+        } catch (\Exception $e) {}
 
-        // 如果没有获取到地理数据，返回按用户计数的数据
-        if (empty($geoData)) {
-            $geoData[] = [
-                'country' => '全部',
-                'user_count' => User::count(),
-                'revenue' => Order::where('status', 'paid')->sum('amount_payable') ?? 0,
-            ];
-        }
-
-        return $geoData;
+        return [[
+            'country' => '全部',
+            'user_count' => User::count(),
+            'revenue' => (float) Order::where('status', 'paid')->sum('amount_payable'),
+        ]];
     }
 
-    /**
-     * 获取用户行为分析
-     */
+    // __PLACEHOLDER_STATS_3__
+
+    public function getRecentLogins(int $limit = 20): array
+    {
+        try {
+            $rows = Db::table('user_login_logs')
+                ->order('created_at', 'desc')
+                ->limit($limit)
+                ->select()->toArray();
+
+            return array_map(function ($r) {
+                $user = User::find($r['user_id']);
+                return [
+                    'id' => $r['id'],
+                    'user_id' => $r['user_id'],
+                    'email' => $user->email ?? 'Unknown',
+                    'ip_address' => $r['ip_address'] ?? '',
+                    'device_type' => $r['device_type'] ?? '',
+                    'country' => $r['country'] ?? '',
+                    'city' => $r['city'] ?? '',
+                    'status' => $r['status'] ?? 'success',
+                    'created_at' => $r['created_at'] ?? '',
+                ];
+            }, $rows);
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    public function detectSuspiciousLogins(): array
+    {
+        try {
+            // 查找同一 IP 多个用户登录的情况
+            $rows = Db::table('user_login_logs')
+                ->fieldRaw("ip_address, COUNT(DISTINCT user_id) as user_count, MAX(created_at) as last_at")
+                ->where('status', 'success')
+                ->whereRaw("created_at >= datetime('now', '-7 days')")
+                ->group('ip_address')
+                ->having('user_count > 2')
+                ->order('user_count', 'desc')
+                ->limit(10)->select()->toArray();
+
+            return array_map(fn($r) => [
+                'ip_address' => $r['ip_address'],
+                'user_count' => (int) $r['user_count'],
+                'last_at' => $r['last_at'] ?? '',
+            ], $rows);
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
     public function getUserBehaviorAnalysis(string $period = '7day'): array
     {
-        $dateRange = $this->getDateRange($period);
+        $dates = $this->getDateRange($period);
+        $startDate = $dates['start'];
+        $endDate = $dates['end'];
 
-        // 新用户注册
-        $newUsers = User::whereBetween('created_at', $dateRange)
-            ->count();
+        $newUsers = User::whereBetween('created_at', [$startDate, $endDate])->count();
 
-        // 活跃用户
-        $activeUsers = UserLoginLog::selectRaw('DISTINCT user_id')
-            ->whereBetween('created_at', $dateRange)
-            ->count();
+        $activeUsers = 0;
+        try {
+            $row = Db::table('user_login_logs')
+                ->whereRaw("created_at BETWEEN ? AND ?", [$startDate, $endDate])
+                ->fieldRaw("COUNT(DISTINCT user_id) as cnt")
+                ->find();
+            $activeUsers = (int) ($row['cnt'] ?? 0);
+        } catch (\Exception $e) {}
 
-        // 订单数量和金额
-        $orders = Order::whereBetween('created_at', $dateRange)
-            ->where('status', 'paid')
-            ->get();
-
-        $orderCount = $orders->count();
-        $revenue = (float) $orders->sum('amount_payable');
-        $avgOrderValue = $orderCount > 0 ? $revenue / $orderCount : 0;
+        $orderCount = Order::where('status', 'paid')
+            ->whereBetween('created_at', [$startDate, $endDate])->count();
+        $revenue = (float) Order::where('status', 'paid')
+            ->whereBetween('created_at', [$startDate, $endDate])->sum('amount_payable');
 
         return [
             'new_users' => $newUsers,
             'active_users' => $activeUsers,
             'order_count' => $orderCount,
             'total_revenue' => $revenue,
-            'avg_order_value' => $avgOrderValue,
+            'avg_order_value' => $orderCount > 0 ? round($revenue / $orderCount, 2) : 0,
             'period' => $period,
         ];
     }
 
-    /**
-     * 获取设备分析数据
-     */
     public function getDeviceAnalysis(string $period = '7day'): array
     {
-        $dateRange = $this->getDateRange($period);
+        $dates = $this->getDateRange($period);
+        try {
+            $rows = Db::table('user_login_logs')
+                ->whereRaw("created_at BETWEEN ? AND ? AND user_agent IS NOT NULL AND user_agent != ''", [$dates['start'], $dates['end']])
+                ->fieldRaw("user_agent, COUNT(*) as cnt")
+                ->group('user_agent')->order('cnt', 'desc')
+                ->limit(10)->select()->toArray();
 
-        $devices = UserLoginLog::selectRaw('user_agent, COUNT(*) as count')
-            ->whereBetween('created_at', $dateRange)
-            ->whereNotNull('user_agent')
-            ->groupBy('user_agent')
-            ->orderByDesc('count')
-            ->limit(10)
-            ->get()
-            ->toArray();
-
-        return array_map(function($device) {
-            return [
-                'device_name' => substr($device['user_agent'] ?? '未知', 0, 80),
-                'count' => $device['count'] ?? 0
-            ];
-        }, $devices);
+            return array_map(fn($r) => [
+                'device_name' => mb_substr($r['user_agent'] ?? '未知', 0, 80),
+                'count' => (int) ($r['cnt'] ?? 0),
+            ], $rows);
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
-    /**
-     * 获取流失用户预警
-     */
+    // __PLACEHOLDER_STATS_4__
+
     public function getChurnWarning(int $daysInactive = 30): array
     {
-        $inactiveThreshold = date('Y-m-d H:i:s', strtotime("-{$daysInactive} days"));
+        $threshold = date('Y-m-d H:i:s', strtotime("-{$daysInactive} days"));
 
-        $churnUsers = User::where('status', 1)
-            ->where(function($q) use ($inactiveThreshold) {
+        $rows = User::where('status', 1)
+            ->where(function ($q) use ($threshold) {
                 $q->whereNull('last_login_at')
-                  ->orWhere('last_login_at', '<', $inactiveThreshold);
+                  ->whereOr('last_login_at', '<', $threshold);
             })
             ->limit(20)
-            ->get()
-            ->toArray();
+            ->order('last_login_at')
+            ->select()->toArray();
 
-        return array_map(function($user) {
-            return [
-                'id' => $user['id'],
-                'email' => $user['email'],
-                'nickname' => $user['nickname'],
-                'last_login' => $user['last_login_at'] ?: '从未登录',
-                'created_at' => $user['created_at'],
-            ];
-        }, $churnUsers);
+        return array_map(fn($u) => [
+            'id' => $u['id'],
+            'email' => $u['email'],
+            'nickname' => $u['nickname'] ?? '',
+            'last_login' => $u['last_login_at'] ?: '从未登录',
+            'created_at' => $u['created_at'],
+        ], $rows);
     }
 
-    /**
-     * 获取套餐分布统计
-     */
     public function getPackageDistribution(): array
     {
-        $packages = Subscription::selectRaw('package_id, status, COUNT(*) as count, SUM(CASE WHEN status = "active" THEN 1 ELSE 0 END) as active_count')
-            ->groupBy('package_id', 'status')
-            ->get()
-            ->groupBy('package_id');
+        $subRows = Subscription::field('package_id, status, COUNT(*) as cnt')
+            ->group('package_id, status')->select()->toArray();
 
-        return Package::where('is_active', 1)
-            ->get()
-            ->map(function(Package $pkg) use ($packages) {
-                $stats = $packages->get($pkg->id, collect());
-                $total = $stats->sum('count');
-                $active = $stats->sum('active_count');
+        $subMap = [];
+        foreach ($subRows as $r) {
+            $pid = $r['package_id'];
+            if (!isset($subMap[$pid])) { $subMap[$pid] = ['total' => 0, 'active' => 0]; }
+            $subMap[$pid]['total'] += (int) $r['cnt'];
+            if ($r['status'] === 'active') { $subMap[$pid]['active'] += (int) $r['cnt']; }
+        }
 
-                return [
-                    'name' => $pkg->name,
-                    'total' => $total,
-                    'active' => $active,
-                    'expired' => $total - $active,
-                    'percentage' => $total > 0 ? round($active / $total * 100, 1) : 0,
-                ];
-            })
-            ->toArray();
+        $packages = Package::where('is_active', 1)->order('sort_order')->select()->toArray();
+
+        return array_map(function ($pkg) use ($subMap) {
+            $s = $subMap[$pkg['id']] ?? ['total' => 0, 'active' => 0];
+            return [
+                'name' => $pkg['name'],
+                'total' => $s['total'],
+                'active' => $s['active'],
+                'expired' => $s['total'] - $s['active'],
+                'percentage' => $s['total'] > 0 ? round($s['active'] / $s['total'] * 100, 1) : 0,
+            ];
+        }, $packages);
     }
 
-    /**
-     * 审计日志
-     */
     public function auditLogs(int $page = 1, int $limit = 20): array
     {
         $skip = ($page - 1) * $limit;
@@ -428,33 +385,53 @@ class StatisticsService
             'items' => array_map(function ($item) {
                 return [
                     'id' => $item['id'],
-                    'action' => $item['action'],
-                    'target' => $item['target_type'] . ':' . $item['target_id'],
-                    'admin_email' => User::find($item['admin_id'])?->email ?? 'Unknown',
-                    'old_values' => $item['old_values'] ? json_decode($item['old_values'], true) : [],
-                    'new_values' => $item['new_values'] ? json_decode($item['new_values'], true) : [],
-                    'created_at' => $item['created_at'],
+                    'action' => $item['action'] ?? '',
+                    'target' => ($item['target_type'] ?? '') . ':' . ($item['target_id'] ?? ''),
+                    'admin_email' => User::find($item['actor_user_id'] ?? 0)?->email ?? 'System',
+                    'detail' => $item['detail_json'] ? json_decode($item['detail_json'], true) : [],
+                    'created_at' => $item['created_at'] ?? '',
                 ];
             }, $items),
         ];
     }
 
-    /**
-     * 7天趋势
-     */
-    private function sevenDayTrend(): array
+    public function sevenDayTrend(): array
     {
         $items = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = date('Y-m-d', strtotime("-{$i} days"));
-            $sum = (float) Order::where('status', 'paid')->whereDay('paid_at', $date)->sum('amount_payable');
+            $sum = (float) Order::where('status', 'paid')
+                ->whereRaw("DATE(paid_at) = ?", [$date])
+                ->sum('amount_payable');
             $items[] = [
                 'label' => date('D', strtotime($date)),
                 'value' => max(24, (int) round($sum / 10)),
             ];
         }
-
         return $items;
+    }
+
+    public function getLoginsByCountry(): array
+    {
+        try {
+            $rows = Db::table('user_login_logs')
+                ->where('country', '<>', '')
+                ->fieldRaw("country, COUNT(*) as cnt")
+                ->group('country')->order('cnt', 'desc')
+                ->limit(10)->select()->toArray();
+
+            return array_map(fn($r) => [
+                'country' => $r['country'] ?: '未知',
+                'count' => (int) ($r['cnt'] ?? 0),
+            ], $rows);
+        } catch (\Exception $e) {
+            return [];
+        }
+    }
+
+    public function getLoginAnomalies(): array
+    {
+        return $this->detectSuspiciousLogins();
     }
 
     private function money(float $amount): string

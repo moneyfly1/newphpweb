@@ -118,7 +118,7 @@ class PaymentService
 
             // 校验回调金额与订单金额是否一致
             $callbackAmount = (float) ($result['amount'] ?? 0);
-            $orderAmount = (float) ($order->amount ?? $order->amount_payable ?? 0);
+            $orderAmount = (float) ($order->amount_payable ?? 0);
             if ($callbackAmount > 0 && abs($callbackAmount - $orderAmount) > 0.01) {
                 Log::warning("回调金额不一致: 订单 {$tradeNo}, 订单金额 {$orderAmount}, 回调金额 {$callbackAmount}");
                 return ['success' => false, 'message' => '回调金额与订单金额不一致'];
@@ -134,7 +134,7 @@ class PaymentService
             // 通知用户支付成功
             try {
                 \app\service\NotificationService::notify((int) $order->user_id, \app\service\NotificationService::ORDER_PAID, [
-                    '订单号' => $tradeNo, '金额' => '¥' . number_format((float) ($order->amount ?? $order->amount_payable ?? 0), 2),
+                    '订单号' => $tradeNo, '金额' => '¥' . number_format((float) ($order->amount_payable ?? 0), 2),
                 ]);
             } catch (\Throwable $ignore) {}
 
@@ -457,7 +457,7 @@ class PaymentService
 
     private static function processPurchase(Order $order): void
     {
-        $params = json_decode((string) $order->params, true) ?? [];
+        $params = json_decode((string) $order->meta_json, true) ?? [];
         $type = $params['type'] ?? 'purchase';
         if ($type === 'upgrade') {
             Log::info("升级订单处理: 用户 {$order->user_id}, 套餐参数: " . json_encode($params, JSON_UNESCAPED_UNICODE));

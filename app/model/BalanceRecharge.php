@@ -37,7 +37,7 @@ class BalanceRecharge extends BaseModel
         $offset = ($page - 1) * $limit;
         return self::where('user_id', $userId)
             ->where('status', 'paid')
-            ->orderBy('paid_at', 'desc')
+            ->order('paid_at', 'desc')
             ->limit($limit)
             ->offset($offset)
             ->select()

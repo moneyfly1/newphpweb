@@ -123,21 +123,21 @@ class AdminSettingsService
     {
         return [
             'system' => [
-                'maintenance_mode' => $this->config->get('system', 'maintenance_mode', 0),
-                'allow_registration' => $this->config->get('system', 'allow_registration', 1),
-                'require_email_verification' => $this->config->get('system', 'require_email_verification', 0),
-                'login_fail_limit' => $this->config->get('system', 'login_fail_limit', 5),
-                'session_timeout_minutes' => $this->config->get('system', 'session_timeout_minutes', 480),
-                'backup_schedule_cron' => $this->config->get('system', 'backup_schedule_cron', '0 2 * * *'),
+                'maintenance_mode' => $this->config->get('system.maintenance_mode', 0),
+                'allow_registration' => $this->config->get('system.allow_registration', 1),
+                'require_email_verification' => $this->config->get('system.require_email_verification', 0),
+                'login_fail_limit' => $this->config->get('system.login_fail_limit', 5),
+                'session_timeout_minutes' => $this->config->get('system.session_timeout_minutes', 480),
+                'backup_schedule_cron' => $this->config->get('system.backup_schedule_cron', '0 2 * * *'),
             ],
             'security' => [
-                'password_min_length' => $this->config->get('security', 'password_min_length', 6),
-                'require_password_special_char' => $this->config->get('security', 'require_password_special_char', 0),
-                'password_expiry_days' => $this->config->get('security', 'password_expiry_days', 0),
-                'mfa_enabled' => $this->config->get('security', 'mfa_enabled', 0),
-                'rate_limit_enabled' => $this->config->get('security', 'rate_limit_enabled', 1),
-                'rate_limit_requests' => $this->config->get('security', 'rate_limit_requests', 100),
-                'rate_limit_window_seconds' => $this->config->get('security', 'rate_limit_window_seconds', 60),
+                'password_min_length' => $this->config->get('security.password_min_length', 6),
+                'require_password_special_char' => $this->config->get('security.require_password_special_char', 0),
+                'password_expiry_days' => $this->config->get('security.password_expiry_days', 0),
+                'mfa_enabled' => $this->config->get('security.mfa_enabled', 0),
+                'rate_limit_enabled' => $this->config->get('security.rate_limit_enabled', 1),
+                'rate_limit_requests' => $this->config->get('security.rate_limit_requests', 100),
+                'rate_limit_window_seconds' => $this->config->get('security.rate_limit_window_seconds', 60),
             ],
         ];
     }
@@ -372,9 +372,8 @@ class AdminSettingsService
             'action' => 'settings_changed',
             'target_type' => 'system',
             'target_id' => 1,
-            'old_values' => json_encode([]),
-            'new_values' => json_encode($payload),
-            'admin_id' => $adminId,
+            'detail_json' => json_encode($payload, JSON_UNESCAPED_UNICODE),
+            'actor_user_id' => $adminId,
         ]);
 
         return ['message' => '高级设置已保存'];
@@ -386,12 +385,12 @@ class AdminSettingsService
     public function emailSettings(): array
     {
         return [
-            'smtp_configured' => !empty($this->config->get('email', 'smtp_host')),
-            'smtp_host' => $this->config->get('email', 'smtp_host', ''),
-            'smtp_port' => $this->config->get('email', 'smtp_port', 587),
-            'smtp_encryption' => $this->config->get('email', 'smtp_encryption', 'tls'),
-            'from_address' => $this->config->get('email', 'from_address', ''),
-            'from_name' => $this->config->get('email', 'from_name', ''),
+            'smtp_configured' => !empty($this->config->get('.')),
+            'smtp_host' => $this->config->get('.', ''),
+            'smtp_port' => $this->config->get('.', 587),
+            'smtp_encryption' => $this->config->get('.', 'tls'),
+            'from_address' => $this->config->get('.', ''),
+            'from_name' => $this->config->get('.', ''),
             'send_test_email' => false,
         ];
     }
@@ -433,15 +432,15 @@ class AdminSettingsService
     public function paymentSettings(): array
     {
         return [
-            'manual_enabled' => $this->config->get('payment', 'manual_enabled', 1),
-            'manual_instructions' => $this->config->get('payment', 'manual_instructions', ''),
-            'alipay_enabled' => $this->config->get('payment', 'alipay_enabled', 0),
-            'alipay_configured' => !empty($this->config->get('payment', 'alipay_app_id')),
-            'wechat_enabled' => $this->config->get('payment', 'wechat_enabled', 0),
-            'wechat_configured' => !empty($this->config->get('payment', 'wechat_merchant_id')),
-            'stripe_enabled' => $this->config->get('payment', 'stripe_enabled', 0),
-            'stripe_configured' => !empty($this->config->get('payment', 'stripe_public_key')),
-            'order_timeout_minutes' => $this->config->get('payment', 'order_timeout_minutes', 30),
+            'manual_enabled' => $this->config->get('.', 1),
+            'manual_instructions' => $this->config->get('.', ''),
+            'alipay_enabled' => $this->config->get('.', 0),
+            'alipay_configured' => !empty($this->config->get('.')),
+            'wechat_enabled' => $this->config->get('.', 0),
+            'wechat_configured' => !empty($this->config->get('.')),
+            'stripe_enabled' => $this->config->get('.', 0),
+            'stripe_configured' => !empty($this->config->get('.')),
+            'order_timeout_minutes' => $this->config->get('.', 30),
         ];
     }
 
@@ -451,11 +450,11 @@ class AdminSettingsService
     public function notificationSettings(): array
     {
         return [
-            'email_order_notification' => $this->config->get('notification', 'email_order_notification', 1),
-            'email_subscription_notification' => $this->config->get('notification', 'email_subscription_notification', 1),
-            'email_ticket_reply_notification' => $this->config->get('notification', 'email_ticket_reply_notification', 1),
-            'email_expiration_warning_days' => $this->config->get('notification', 'email_expiration_warning_days', 7),
-            'in_app_notifications_enabled' => $this->config->get('notification', 'in_app_notifications_enabled', 1),
+            'email_order_notification' => $this->config->get('.', 1),
+            'email_subscription_notification' => $this->config->get('.', 1),
+            'email_ticket_reply_notification' => $this->config->get('.', 1),
+            'email_expiration_warning_days' => $this->config->get('.', 7),
+            'in_app_notifications_enabled' => $this->config->get('.', 1),
         ];
     }
 
@@ -482,12 +481,12 @@ class AdminSettingsService
     public function themeSettings(): array
     {
         return [
-            'primary_color' => $this->config->get('theme', 'primary_color', '#b95c2b'),
-            'secondary_color' => $this->config->get('theme', 'secondary_color', '#3f5f59'),
-            'danger_color' => $this->config->get('theme', 'danger_color', '#b03a2d'),
-            'logo_url' => $this->config->get('theme', 'logo_url', ''),
-            'favicon_url' => $this->config->get('theme', 'favicon_url', ''),
-            'dark_mode_default' => $this->config->get('theme', 'dark_mode_default', 0),
+            'primary_color' => $this->config->get('.', '#b95c2b'),
+            'secondary_color' => $this->config->get('.', '#3f5f59'),
+            'danger_color' => $this->config->get('.', '#b03a2d'),
+            'logo_url' => $this->config->get('.', ''),
+            'favicon_url' => $this->config->get('.', ''),
+            'dark_mode_default' => $this->config->get('.', 0),
         ];
     }
 

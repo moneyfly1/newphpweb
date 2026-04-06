@@ -20,7 +20,7 @@ class PaymentMethod extends BaseModel
     public static function getEnabled()
     {
         return self::where('is_enabled', 1)
-            ->orderBy('sort_order', 'asc')
+            ->order('sort_order', 'asc')
             ->select()
             ->toArray();
     }

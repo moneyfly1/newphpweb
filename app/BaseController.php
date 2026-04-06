@@ -95,8 +95,15 @@ abstract class BaseController
         ];
     }
 
-    protected function jsonSuccess(string $message, array $data = []): Response
+    protected function jsonSuccess(string|array $messageOrData = '', array $data = []): Response
     {
+        if (is_array($messageOrData)) {
+            $data = $messageOrData;
+            $message = 'ok';
+        } else {
+            $message = $messageOrData ?: 'ok';
+        }
+
         return json([
             'code'    => 0,
             'message' => $message,

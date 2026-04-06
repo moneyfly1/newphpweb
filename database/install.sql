@@ -499,10 +499,10 @@ CREATE TABLE IF NOT EXISTS webhook_logs (
 
 -- ==================== 初始数据 ====================
 
--- 管理员: admin@cboard.local / admin123
+-- 管理员: 3219904322@qq.com / admin123456
 -- 用户: user@cboard.local / user123
 INSERT OR IGNORE INTO users (id, email, password_hash, nickname, role, status, balance, invite_code) VALUES
-  (1, 'admin@cboard.local', '$2y$12$JbA1RYJ5Qi9M2x9KDHj9meVbduq87Pp099EumW4tK3Gachv7LdMre', 'Admin', 1, 1, 0.00, 'ADMIN001'),
+  (1, '3219904322@qq.com', '$2y$10$7jVmYlgdIJOqIhnCeeUyWeb2v9JjxnughheNS9KxWdvgych0bDk4W', 'Admin', 1, 1, 0.00, 'ADMIN001'),
   (2, 'user@cboard.local', '$2y$12$BQs5GvfoEkPUrfxKRc/7eeHNMBJts9XC8wLqT0tB9uQ/ozqfeEdYe', 'Luna', 0, 1, 128.40, 'LUNA001');
 
 INSERT OR IGNORE INTO packages (id, name, description, price_monthly, price_quarterly, price_yearly, device_limit, traffic_limit_gb, speed_limit_mbps, features_json, is_active, sort_order) VALUES

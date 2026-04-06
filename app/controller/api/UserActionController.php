@@ -34,12 +34,16 @@ class UserActionController extends BaseController
         $this->requireCsrf();
 
         $data = $this->request->only(['package_id', 'device_count', 'month_count', 'coupon_code', 'payment_method']);
-        $this->validate($data, [
-            'package_id'     => 'require|number',
-            'device_count'   => 'require|number|min:1',
-            'month_count'    => 'require|number|min:1',
-            'payment_method' => 'require',
-        ]);
+        try {
+            $this->validate($data, [
+                'package_id'     => 'require|number',
+                'device_count'   => 'require|number|min:1',
+                'month_count'    => 'require|number|min:1',
+                'payment_method' => 'require',
+            ]);
+        } catch (\think\exception\ValidateException $e) {
+            return $this->jsonError($e->getMessage(), 422);
+        }
 
         try {
             $result = $this->panel->createOrder($data);
@@ -95,10 +99,14 @@ class UserActionController extends BaseController
         $this->requireCsrf();
 
         $data = $this->request->only(['subject', 'content']);
-        $this->validate($data, [
-            'subject' => 'require|min:1|max:100',
-            'content' => 'require|min:1|max:2000',
-        ]);
+        try {
+            $this->validate($data, [
+                'subject' => 'require|min:1|max:100',
+                'content' => 'require|min:1|max:2000',
+            ]);
+        } catch (\think\exception\ValidateException $e) {
+            return $this->jsonError($e->getMessage(), 422);
+        }
 
         return $this->jsonSuccess('工单已提交。', $this->panel->createTicket($data));
     }
@@ -108,11 +116,15 @@ class UserActionController extends BaseController
         $this->requireCsrf();
 
         $data = $this->request->only(['name', 'telegram', 'timezone']);
-        $this->validate($data, [
-            'name'     => 'require|min:1|max:60',
-            'telegram' => 'max:60',
-            'timezone' => 'max:60',
-        ]);
+        try {
+            $this->validate($data, [
+                'name'     => 'require|min:1|max:60',
+                'telegram' => 'max:60',
+                'timezone' => 'max:60',
+            ]);
+        } catch (\think\exception\ValidateException $e) {
+            return $this->jsonError($e->getMessage(), 422);
+        }
 
         try {
             $result = $this->panel->saveProfile($data);
@@ -128,11 +140,15 @@ class UserActionController extends BaseController
         $this->requireCsrf();
 
         $data = $this->request->only(['old_password', 'new_password', 'confirm_password']);
-        $this->validate($data, [
-            'old_password'     => 'require|min:8',
-            'new_password'     => 'require|min:8',
-            'confirm_password' => 'require|min:8',
-        ]);
+        try {
+            $this->validate($data, [
+                'old_password'     => 'require|min:6',
+                'new_password'     => 'require|min:6',
+                'confirm_password' => 'require|min:6',
+            ]);
+        } catch (\think\exception\ValidateException $e) {
+            return $this->jsonError($e->getMessage(), 422);
+        }
 
         try {
             $result = $this->panel->updatePassword($data);

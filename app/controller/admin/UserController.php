@@ -22,7 +22,11 @@ class UserController extends BaseController
 
         $stats = $this->panel->systemStatistics('7day');
         $recentLogins = $this->panel->getRecentLogins(6);
-        $suspiciousLogins = $this->panel->detectSuspiciousLogins();
+        $suspiciousRaw = $this->panel->detectSuspiciousLogins();
+        $suspiciousLogins = [
+            'total_alerts' => count($suspiciousRaw),
+            'items' => $suspiciousRaw,
+        ];
         $userSummary = [
             'total' => count($users),
             'enabled' => count(array_filter($users, fn ($user) => !empty($user['enabled']))),

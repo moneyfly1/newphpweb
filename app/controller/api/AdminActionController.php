@@ -56,7 +56,7 @@ class AdminActionController extends BaseController
         $this->requireCsrf();
 
         try {
-            $data = $this->panel->updateUserStatus($id, filter_var($this->request->post('enabled'), FILTER_VALIDATE_BOOLEAN));
+            $data = $this->panel->updateUserStatus($id, (int) filter_var($this->request->post('enabled'), FILTER_VALIDATE_BOOLEAN));
         } catch (\RuntimeException $exception) {
             return $this->jsonError($exception->getMessage(), 422);
         }
@@ -439,9 +439,8 @@ class AdminActionController extends BaseController
     public function userLoginHistory(int $userId)
     {
         try {
-            $page = (int)$this->request->get('page', 1);
             $limit = (int)$this->request->get('limit', 20);
-            $data = $this->panel->getUserLoginHistory($userId, $page, $limit);
+            $data = $this->panel->userLoginHistory($userId, $limit);
         } catch (\RuntimeException $exception) {
             return $this->jsonError($exception->getMessage(), 422);
         }
@@ -452,7 +451,7 @@ class AdminActionController extends BaseController
     public function userLoginAnomalies(int $userId)
     {
         try {
-            $data = $this->panel->getLoginAnomalies($userId);
+            $data = $this->panel->getLoginAnomalies();
         } catch (\RuntimeException $exception) {
             return $this->jsonError($exception->getMessage(), 422);
         }

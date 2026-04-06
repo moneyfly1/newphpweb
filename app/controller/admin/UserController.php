@@ -16,9 +16,7 @@ class UserController extends BaseController
             }
         }
 
-        $users = !empty($filters)
-            ? $this->panel->searchAdminUsers($filters)
-            : $this->panel->adminUsers();
+        $users = $this->panel->adminUsers($filters);
 
         $stats = $this->panel->systemStatistics('7day');
         $recentLogins = $this->panel->getRecentLogins(6);
@@ -29,11 +27,11 @@ class UserController extends BaseController
         ];
         $userSummary = [
             'total' => count($users),
-            'enabled' => count(array_filter($users, fn ($user) => !empty($user['enabled']))),
-            'disabled' => count(array_filter($users, fn ($user) => empty($user['enabled']))),
-            'admins' => count(array_filter($users, fn ($user) => ($user['level'] ?? '') === 'Admin')),
-            'active' => count(array_filter($users, fn ($user) => (time() - strtotime($user['created_at'] ?? 0)) < 7 * 86400)),
-            'new' => count(array_filter($users, fn ($user) => (time() - strtotime($user['created_at'] ?? 0)) < 24 * 3600)),
+            'enabled' => count(array_filter($users, fn ($user) => ($user['status_key'] ?? 0) === 1)),
+            'disabled' => count(array_filter($users, fn ($user) => ($user['status_key'] ?? 0) === 0)),
+            'admins' => count(array_filter($users, fn ($user) => ($user['role_key'] ?? 0) === 1)),
+            'active' => count(array_filter($users, fn ($user) => (time() - strtotime($user['created_at'] ?? '2000-01-01')) < 7 * 86400)),
+            'new' => count(array_filter($users, fn ($user) => (time() - strtotime($user['created_at'] ?? '2000-01-01')) < 24 * 3600)),
         ];
 
         return $this->render('admin/users', [

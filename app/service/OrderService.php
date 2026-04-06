@@ -171,9 +171,11 @@ class OrderService
             'id' => $order->id, 'no' => $order->no,
             'user' => $this->userName((int) $order->user_id), 'user_id' => (int) $order->user_id,
             'amount' => $this->money((float) $order->amount_payable),
+            'type' => (string) ($order->type ?: '订单'),
             'status' => $this->orderStatusLabel((string) $order->status), 'status_key' => $order->status,
             'payment' => $this->paymentMethodLabel((string) $order->payment_method),
             'payment_key' => (string) $order->payment_method, 'created_at' => (string) $order->created_at,
+            'paid_at' => $order->paid_at ? (string) $order->paid_at : '',
         ])->all();
     }
 

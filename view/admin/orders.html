@@ -29,10 +29,10 @@
             <span>状态</span>
             <select id="filter-status">
                 <option value="">全部</option>
-                <option value="pending" {if $filters.status|default='' == 'pending'}selected{/if}>待支付</option>
-                <option value="paid" {if $filters.status|default='' == 'paid'}selected{/if}>已支付</option>
-                <option value="cancelled" {if $filters.status|default='' == 'cancelled'}selected{/if}>已取消</option>
-                <option value="refunded" {if $filters.status|default='' == 'refunded'}selected{/if}>已退款</option>
+                <option value="pending" {if ($filters['status'] ?? '') == 'pending'}selected{/if}>待支付</option>
+                <option value="paid" {if ($filters['status'] ?? '') == 'paid'}selected{/if}>已支付</option>
+                <option value="cancelled" {if ($filters['status'] ?? '') == 'cancelled'}selected{/if}>已取消</option>
+                <option value="refunded" {if ($filters['status'] ?? '') == 'refunded'}selected{/if}>已退款</option>
             </select>
         </label>
         <label class="field">

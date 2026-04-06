@@ -13,20 +13,24 @@ class UserActionController extends BaseController
     {
         $this->requireCsrf();
 
-        return $this->jsonSuccess('签到结果已更新。', $this->panel->checkin());
+        try {
+            return $this->jsonSuccess('签到结果已更新。', $this->panel->checkin());
+        } catch (\RuntimeException $e) {
+            return $this->jsonError($e->getMessage(), 422);
+        }
     }
 
     public function verifyCoupon()
     {
         $this->requireCsrf();
 
-        $data = $this->request->only(['code', 'amount']);
-        $coupon = $this->panel->verifyCoupon((string) ($data['code'] ?? ''), (float) ($data['amount'] ?? 0));
-        if (!$coupon) {
-            return $this->jsonError('优惠码无效或不满足使用条件。', 422);
+        try {
+            $data = $this->request->only(['code', 'amount']);
+            $coupon = $this->panel->verifyCoupon((string) ($data['code'] ?? ''), (float) ($data['amount'] ?? 0));
+            return $this->jsonSuccess('优惠码验证成功。', $coupon);
+        } catch (\RuntimeException $e) {
+            return $this->jsonError($e->getMessage(), 422);
         }
-
-        return $this->jsonSuccess('优惠码验证成功。', $coupon);
     }
 
     public function createOrder()
@@ -108,7 +112,11 @@ class UserActionController extends BaseController
             return $this->jsonError($e->getMessage(), 422);
         }
 
-        return $this->jsonSuccess('工单已提交。', $this->panel->createTicket($data));
+        try {
+            return $this->jsonSuccess('工单已提交。', $this->panel->createTicket($data));
+        } catch (\RuntimeException $e) {
+            return $this->jsonError($e->getMessage(), 422);
+        }
     }
 
     public function saveProfile()
@@ -189,7 +197,11 @@ class UserActionController extends BaseController
     {
         $this->requireCsrf();
 
-        return $this->jsonSuccess('订阅邮件已处理。', $this->panel->sendSubscriptionEmail());
+        try {
+            return $this->jsonSuccess('订阅邮件已处理。', $this->panel->sendSubscriptionEmail());
+        } catch (\RuntimeException $e) {
+            return $this->jsonError($e->getMessage(), 422);
+        }
     }
 
     public function clearSubscriptionDevices()
@@ -213,7 +225,7 @@ class UserActionController extends BaseController
             'email_announcement', 'notification_frequency']);
         
         try {
-            $result = $this->panel->saveUserNotificationPreferences($this->userId, $data);
+            $result = $this->panel->saveUserNotificationPreferences($this->currentUserId(), $data);
         } catch (\RuntimeException $exception) {
             return $this->jsonError($exception->getMessage(), 422);
         }
@@ -228,7 +240,7 @@ class UserActionController extends BaseController
         $data = $this->request->only(['profile_public', 'email_hidden', 'marketing_email']);
         
         try {
-            $result = $this->panel->saveUserPrivacySettings($this->userId, $data);
+            $result = $this->panel->saveUserPrivacySettings($this->currentUserId(), $data);
         } catch (\RuntimeException $exception) {
             return $this->jsonError($exception->getMessage(), 422);
         }
@@ -243,7 +255,7 @@ class UserActionController extends BaseController
         $data = $this->request->only(['timezone', 'language', 'dark_mode']);
         
         try {
-            $result = $this->panel->saveUserPreferences($this->userId, $data);
+            $result = $this->panel->saveUserPreferences($this->currentUserId(), $data);
         } catch (\RuntimeException $exception) {
             return $this->jsonError($exception->getMessage(), 422);
         }
@@ -256,7 +268,7 @@ class UserActionController extends BaseController
         $this->requireCsrf();
 
         try {
-            $result = $this->panel->exportUserData($this->userId);
+            $result = $this->panel->exportUserData($this->currentUserId());
         } catch (\RuntimeException $exception) {
             return $this->jsonError($exception->getMessage(), 422);
         }
@@ -267,7 +279,7 @@ class UserActionController extends BaseController
     public function loginHistory()
     {
         try {
-            $result = $this->panel->userLoginHistory($this->userId, 10);
+            $result = $this->panel->userLoginHistory($this->currentUserId(), 10);
         } catch (\RuntimeException $exception) {
             return $this->jsonError($exception->getMessage(), 422);
         }
@@ -278,7 +290,7 @@ class UserActionController extends BaseController
     public function userSubscriptions()
     {
         try {
-            $result = $this->panel->getUserSubscriptions($this->userId);
+            $result = $this->panel->getUserSubscriptions($this->currentUserId());
         } catch (\RuntimeException $exception) {
             return $this->jsonError($exception->getMessage(), 422);
         }
@@ -293,7 +305,7 @@ class UserActionController extends BaseController
         $reason = (string) $this->request->post('reason', '用户主动冻结');
 
         try {
-            $result = $this->panel->freezeUserAccount($this->userId, $reason);
+            $result = $this->panel->freezeUserAccount($this->currentUserId(), $reason);
         } catch (\RuntimeException $exception) {
             return $this->jsonError($exception->getMessage(), 422);
         }
@@ -306,7 +318,7 @@ class UserActionController extends BaseController
         $this->requireCsrf();
 
         try {
-            $result = $this->panel->deleteUserAccount($this->userId);
+            $result = $this->panel->deleteUserAccount($this->currentUserId());
             // 清除登录状态
             session()->destroy();
         } catch (\RuntimeException $exception) {
@@ -348,7 +360,7 @@ class UserActionController extends BaseController
                 throw new \RuntimeException('无效的支付方式');
             }
 
-            $recharge = \app\service\payment\PaymentService::createRecharge($this->userId, $amount, $paymentMethod);
+            $recharge = \app\service\payment\PaymentService::createRecharge($this->currentUserId(), $amount, $paymentMethod);
 
             $responseData = [
                 'recharge_id' => $recharge->id,
@@ -359,7 +371,7 @@ class UserActionController extends BaseController
 
             // 不同支付方式返回不同的信息
             if ($paymentMethod === 'alipay') {
-                $alipayData = \app\service\payment\PaymentService::createAlipayRecharge($this->userId, $amount);
+                $alipayData = \app\service\payment\PaymentService::createAlipayRecharge($this->currentUserId(), $amount);
                 $responseData['payment_url'] = $alipayData['payment_url'];
                 $responseData['qr_code'] = $alipayData['qr_code'];
             } elseif ($paymentMethod === 'usdt') {
@@ -387,7 +399,7 @@ class UserActionController extends BaseController
         try {
             $recharge = \app\model\BalanceRecharge::findOrFail($rechargeId);
 
-            if ((int) $recharge->user_id !== $this->userId) {
+            if ((int) $recharge->user_id !== $this->currentUserId()) {
                 throw new \RuntimeException('无权查看此充值记录');
             }
 
@@ -412,8 +424,8 @@ class UserActionController extends BaseController
             $page = (int) $this->request->get('page', 1);
             $limit = (int) $this->request->get('limit', 10);
 
-            $recharges = \app\model\BalanceRecharge::getUserHistory($this->userId, $page, $limit);
-            $total = \app\model\BalanceRecharge::where('user_id', $this->userId)
+            $recharges = \app\model\BalanceRecharge::getUserHistory($this->currentUserId(), $page, $limit);
+            $total = \app\model\BalanceRecharge::where('user_id', $this->currentUserId())
                 ->where('status', 'paid')
                 ->count();
 
@@ -598,7 +610,7 @@ class UserActionController extends BaseController
         try {
             $order = \app\model\Order::where('no', $orderNo)->findOrFail();
 
-            if ((int) $order->user_id !== $this->userId) {
+            if ((int) $order->user_id !== $this->currentUserId()) {
                 throw new \RuntimeException('无权查看此订单');
             }
 

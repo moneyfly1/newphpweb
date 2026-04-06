@@ -55,11 +55,11 @@
             <span>状态</span>
             <select id="filter-status">
                 <option value="">全部状态</option>
-                <option value="active" {if $filters.status|default='' == 'active'}selected{/if}>活跃</option>
-                <option value="expiring" {if $filters.status|default='' == 'expiring'}selected{/if}>即将过期</option>
-                <option value="expired" {if $filters.status|default='' == 'expired'}selected{/if}>已过期</option>
-                <option value="disabled" {if $filters.status|default='' == 'disabled'}selected{/if}>已禁用</option>
-                <option value="device_exceeded" {if $filters.status|default='' == 'device_exceeded'}selected{/if}>设备超限</option>
+                <option value="active" {if ($filters['status'] ?? '') == 'active'}selected{/if}>活跃</option>
+                <option value="expiring" {if ($filters['status'] ?? '') == 'expiring'}selected{/if}>即将过期</option>
+                <option value="expired" {if ($filters['status'] ?? '') == 'expired'}selected{/if}>已过期</option>
+                <option value="disabled" {if ($filters['status'] ?? '') == 'disabled'}selected{/if}>已禁用</option>
+                <option value="device_exceeded" {if ($filters['status'] ?? '') == 'device_exceeded'}selected{/if}>设备超限</option>
             </select>
         </label>
         <label class="field">
@@ -78,8 +78,8 @@
             <span>设备限制</span>
             <select id="filter-device-status">
                 <option value="">全部</option>
-                <option value="normal" {if $filters.device_status|default='' == 'normal'}selected{/if}>正常</option>
-                <option value="exceeded" {if $filters.device_status|default='' == 'exceeded'}selected{/if}>超限</option>
+                <option value="normal" {if ($filters['device_status'] ?? '') == 'normal'}selected{/if}>正常</option>
+                <option value="exceeded" {if ($filters['device_status'] ?? '') == 'exceeded'}selected{/if}>超限</option>
             </select>
         </label>
     </div>

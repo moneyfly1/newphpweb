@@ -385,12 +385,12 @@ class AdminSettingsService
     public function emailSettings(): array
     {
         return [
-            'smtp_configured' => !empty($this->config->get('.')),
-            'smtp_host' => $this->config->get('.', ''),
-            'smtp_port' => $this->config->get('.', 587),
-            'smtp_encryption' => $this->config->get('.', 'tls'),
-            'from_address' => $this->config->get('.', ''),
-            'from_name' => $this->config->get('.', ''),
+            'smtp_configured' => !empty($this->config->get('smtp.host')),
+            'smtp_host' => $this->config->get('smtp.host', ''),
+            'smtp_port' => $this->config->get('smtp.port', 587),
+            'smtp_encryption' => $this->config->get('smtp.encryption', 'tls'),
+            'from_address' => $this->config->get('smtp.from_address', ''),
+            'from_name' => $this->config->get('smtp.from_name', ''),
             'send_test_email' => false,
         ];
     }
@@ -432,15 +432,15 @@ class AdminSettingsService
     public function paymentSettings(): array
     {
         return [
-            'manual_enabled' => $this->config->get('.', 1),
-            'manual_instructions' => $this->config->get('.', ''),
-            'alipay_enabled' => $this->config->get('.', 0),
-            'alipay_configured' => !empty($this->config->get('.')),
-            'wechat_enabled' => $this->config->get('.', 0),
-            'wechat_configured' => !empty($this->config->get('.')),
-            'stripe_enabled' => $this->config->get('.', 0),
-            'stripe_configured' => !empty($this->config->get('.')),
-            'order_timeout_minutes' => $this->config->get('.', 30),
+            'manual_enabled' => $this->config->get('payment.manual_enabled', 1),
+            'manual_instructions' => $this->config->get('payment.manual_instructions', ''),
+            'alipay_enabled' => $this->config->get('payment.alipay_enabled', 0),
+            'alipay_configured' => !empty($this->config->get('payment.alipay_app_id')),
+            'wechat_enabled' => $this->config->get('payment.wechat_enabled', 0),
+            'wechat_configured' => !empty($this->config->get('payment.wechat_app_id')),
+            'stripe_enabled' => $this->config->get('payment.stripe_enabled', 0),
+            'stripe_configured' => !empty($this->config->get('payment.stripe_secret_key')),
+            'order_timeout_minutes' => $this->config->get('payment.order_timeout_minutes', 30),
         ];
     }
 
@@ -450,11 +450,11 @@ class AdminSettingsService
     public function notificationSettings(): array
     {
         return [
-            'email_order_notification' => $this->config->get('.', 1),
-            'email_subscription_notification' => $this->config->get('.', 1),
-            'email_ticket_reply_notification' => $this->config->get('.', 1),
-            'email_expiration_warning_days' => $this->config->get('.', 7),
-            'in_app_notifications_enabled' => $this->config->get('.', 1),
+            'email_order_notification' => $this->config->get('notification.email_order_notification', 1),
+            'email_subscription_notification' => $this->config->get('notification.email_subscription_notification', 1),
+            'email_ticket_reply_notification' => $this->config->get('notification.email_ticket_reply_notification', 1),
+            'email_expiration_warning_days' => $this->config->get('notification.email_expiration_warning_days', 7),
+            'in_app_notifications_enabled' => $this->config->get('notification.in_app_notifications_enabled', 1),
         ];
     }
 
@@ -481,12 +481,12 @@ class AdminSettingsService
     public function themeSettings(): array
     {
         return [
-            'primary_color' => $this->config->get('.', '#b95c2b'),
-            'secondary_color' => $this->config->get('.', '#3f5f59'),
-            'danger_color' => $this->config->get('.', '#b03a2d'),
-            'logo_url' => $this->config->get('.', ''),
-            'favicon_url' => $this->config->get('.', ''),
-            'dark_mode_default' => $this->config->get('.', 0),
+            'primary_color' => $this->config->get('theme.primary_color', '#b95c2b'),
+            'secondary_color' => $this->config->get('theme.secondary_color', '#3f5f59'),
+            'danger_color' => $this->config->get('theme.danger_color', '#b03a2d'),
+            'logo_url' => $this->config->get('theme.logo_url', ''),
+            'favicon_url' => $this->config->get('theme.favicon_url', ''),
+            'dark_mode_default' => $this->config->get('theme.dark_mode_default', 0),
         ];
     }
 
@@ -524,7 +524,7 @@ class AdminSettingsService
         SystemSetting::create([
             'group_key' => 'system',
             'item_key' => $itemKey,
-            'value' => is_array($value) ? json_encode($value) : (string)$value,
+            'item_value' => is_array($value) ? json_encode($value) : (string)$value,
         ]);
     }
 }

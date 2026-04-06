@@ -47,7 +47,7 @@
                     {if condition="$recentLogins"}
                         {volist name="recentLogins" id="log"}
                         <tr>
-                            <td>{$log.user.nickname|default=$log.user.email}</td>
+                            <td>{$log.email|default='未知'}</td>
                             <td>{$log.ip_address|default='未记录'}</td>
                             <td>{$log.created_at}</td>
                         </tr>
@@ -65,12 +65,12 @@
         <h3>异常活动提醒</h3>
         <div class="alert-group">
             <div class="alert-card">
-                <strong>暴力破解 IP</strong>
-                <p>{if condition="$suspiciousLogins.brute_force_ips"}检测到 {count($suspiciousLogins.brute_force_ips)} 个异常来源{else /}暂无异常{/if}</p>
+                <strong>可疑 IP 共享</strong>
+                <p>{if condition="$suspiciousLogins['total_alerts'] > 0"}检测到 {$suspiciousLogins.total_alerts} 个异常来源{else /}暂无异常{/if}</p>
             </div>
             <div class="alert-card">
-                <strong>异地登录</strong>
-                <p>{if condition="$suspiciousLogins.impossible_locations"}检测到 {count($suspiciousLogins.impossible_locations)} 个异常用户{else /}暂无异常{/if}</p>
+                <strong>异常详情</strong>
+                <p>{if condition="$suspiciousLogins['items']"}共 {$suspiciousLogins.total_alerts} 条告警记录{else /}暂无异常{/if}</p>
             </div>
             <div class="button-row">
                 <a class="button button-ghost" href="/admin/logins">登录安全</a>
@@ -101,16 +101,16 @@
             <span>用户角色</span>
             <select id="filter-role">
                 <option value="">全部角色</option>
-                <option value="user" {if $filters.role|default='' == 'user'}selected{/if}>普通用户</option>
-                <option value="admin" {if $filters.role|default='' == 'admin'}selected{/if}>管理员</option>
+                <option value="user" {if ($filters['role'] ?? '') == 'user'}selected{/if}>普通用户</option>
+                <option value="admin" {if ($filters['role'] ?? '') == 'admin'}selected{/if}>管理员</option>
             </select>
         </label>
         <label class="field">
             <span>账户状态</span>
             <select id="filter-status">
                 <option value="">全部状态</option>
-                <option value="1" {if $filters.status|default='' == '1'}selected{/if}>启用</option>
-                <option value="0" {if $filters.status|default='' == '0'}selected{/if}>禁用</option>
+                <option value="1" {if ($filters['status'] ?? '') == '1'}selected{/if}>启用</option>
+                <option value="0" {if ($filters['status'] ?? '') == '0'}selected{/if}>禁用</option>
             </select>
         </label>
         <label class="field">

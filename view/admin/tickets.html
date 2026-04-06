@@ -28,18 +28,18 @@
             <span>状态</span>
             <select id="filter-status">
                 <option value="">全部</option>
-                <option value="open" {if $filters.status|default='' == 'open'}selected{/if}>待处理</option>
-                <option value="replied" {if $filters.status|default='' == 'replied'}selected{/if}>已回复</option>
-                <option value="closed" {if $filters.status|default='' == 'closed'}selected{/if}>已关闭</option>
+                <option value="open" {if ($filters['status'] ?? '') == 'open'}selected{/if}>待处理</option>
+                <option value="replied" {if ($filters['status'] ?? '') == 'replied'}selected{/if}>已回复</option>
+                <option value="closed" {if ($filters['status'] ?? '') == 'closed'}selected{/if}>已关闭</option>
             </select>
         </label>
         <label class="field">
             <span>优先级</span>
             <select id="filter-type">
                 <option value="">全部</option>
-                <option value="normal" {if $filters.type|default='' == 'normal'}selected{/if}>普通</option>
-                <option value="high" {if $filters.type|default='' == 'high'}selected{/if}>高优先级</option>
-                <option value="urgent" {if $filters.type|default='' == 'urgent'}selected{/if}>紧急</option>
+                <option value="normal" {if ($filters['type'] ?? '') == 'normal'}selected{/if}>普通</option>
+                <option value="high" {if ($filters['type'] ?? '') == 'high'}selected{/if}>高优先级</option>
+                <option value="urgent" {if ($filters['type'] ?? '') == 'urgent'}selected{/if}>紧急</option>
             </select>
         </label>
         <label class="field">

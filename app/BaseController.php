@@ -120,6 +120,11 @@ abstract class BaseController
         ], $code >= 400 ? $code : 400);
     }
 
+    protected function currentUserId(): int
+    {
+        return (int) ($this->auth->user()['id'] ?? 0);
+    }
+
     protected function requireCsrf(): void
     {
         $token = (string) ($this->request->post('csrf_token')

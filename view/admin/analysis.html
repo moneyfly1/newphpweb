@@ -8,10 +8,10 @@
             <h3>用户行为与趋势分析</h3>
         </div>
         <select id="period-selector" style="width: 150px; padding: 0.75rem; border: 1px solid var(--line); border-radius: 8px;">
-            <option value="1day" {if $period|default='7day' == '1day'}selected{/if}>过去1天</option>
-            <option value="7day" {if $period|default='7day' == '7day'}selected{/if}>过去7天</option>
-            <option value="30day" {if $period|default='7day' == '30day'}selected{/if}>过去30天</option>
-            <option value="90day" {if $period|default='7day' == '90day'}selected{/if}>过去90天</option>
+            <option value="1day" {if ($period ?? '7day') == '1day'}selected{/if}>过去1天</option>
+            <option value="7day" {if ($period ?? '7day') == '7day'}selected{/if}>过去7天</option>
+            <option value="30day" {if ($period ?? '7day') == '30day'}selected{/if}>过去30天</option>
+            <option value="90day" {if ($period ?? '7day') == '90day'}selected{/if}>过去90天</option>
         </select>
     </div>
 </section>

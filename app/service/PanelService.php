@@ -283,10 +283,15 @@ class PanelService
         if (!empty($filters['status'])) { $query->where('status', $filters['status']); }
         return $query->select()->map(fn (Subscription $s): array => [
             'id' => $s->id, 'user' => $this->userName((int) $s->user_id), 'user_id' => (int) $s->user_id,
-            'package' => $this->packageName((int) $s->package_id), 'status' => (string) $s->status,
+            'user_email' => User::find((int) $s->user_id)?->email ?? '',
+            'package' => $this->packageName((int) $s->package_id), 'package_id' => (int) $s->package_id,
+            'status' => (string) $s->status,
+            'device_limit' => (int) $s->device_limit, 'used_devices' => (int) $s->used_devices,
             'devices' => $s->used_devices . '/' . $s->device_limit,
             'traffic' => $s->traffic_used_gb . '/' . $s->traffic_total_gb . ' GB',
-            'expire_at' => $s->expire_at ? (string) $s->expire_at : '未设置',
+            'expire_at' => $s->expire_at ? (string) $s->expire_at : date('Y-m-d H:i:s'),
+            'universal_url' => (string) ($s->sub_url ?: ''),
+            'clash_url' => $s->sub_url ? $s->sub_url . '?format=clash' : '',
         ])->all();
     }
 
@@ -475,6 +480,7 @@ class PanelService
             'role' => (int) $u->role === 1 ? '管理员' : '用户', 'role_key' => (int) $u->role,
             'status' => (int) $u->status === 1 ? '正常' : '禁用', 'status_key' => (int) $u->status,
             'balance' => $this->money((float) $u->balance), 'created_at' => (string) $u->created_at,
+            'level' => $u->userLevel?->name ?? '普通用户',
         ])->all();
     }
 
@@ -508,14 +514,27 @@ class PanelService
         return ['password' => $password];
     }
 
-    public function adminPackages(): array
+    public function adminPackages(array $filters = []): array
     {
-        return Package::order('sort_order', 'asc')->select()->map(fn (Package $p): array => [
-            'id' => $p->id, 'name' => $p->name, 'monthly' => $this->money((float) $p->price_monthly),
-            'quarterly' => $this->money((float) $p->price_quarterly), 'yearly' => $this->money((float) $p->price_yearly),
-            'devices' => (int) $p->device_limit, 'traffic' => (int) $p->traffic_limit_gb . ' GB',
-            'speed' => (int) $p->speed_limit_mbps . ' Mbps', 'active' => (int) $p->is_active,
+        $query = Package::order('sort_order', 'asc');
+        if (!empty($filters['keyword'])) {
+            $query->where('name', 'like', '%' . $filters['keyword'] . '%');
+        }
+        if (isset($filters['status']) && $filters['status'] !== '') {
+            $query->where('is_active', (int) $filters['status']);
+        }
+        return $query->select()->map(fn (Package $p): array => [
+            'id' => $p->id, 'name' => $p->name, 'description' => (string) ($p->description ?? ''),
+            'monthly_price' => number_format((float) $p->price_monthly, 2),
+            'quarterly_price' => number_format((float) $p->price_quarterly, 2),
+            'yearly_price' => number_format((float) $p->price_yearly, 2),
+            'included_devices' => (int) $p->device_limit,
+            'traffic_limit' => (int) $p->traffic_limit_gb . ' GB',
+            'speed_limit' => (int) $p->speed_limit_mbps,
+            'is_active' => (int) $p->is_active,
+            'badge' => (int) $p->is_active ? '启用' : '停用',
             'sort' => (int) $p->sort_order,
+            'feature_tags' => $p->features_json ? (json_decode((string) $p->features_json, true) ?: []) : [],
         ])->all();
     }
 

@@ -29,8 +29,8 @@
             <span>状态</span>
             <select id="filter-status">
                 <option value="">全部</option>
-                <option value="1" {if $filters.status|default='' == '1'}selected{/if}>启用</option>
-                <option value="0" {if $filters.status|default='' == '0'}selected{/if}>停用</option>
+                <option value="1" {if ($filters['status'] ?? '') == '1'}selected{/if}>启用</option>
+                <option value="0" {if ($filters['status'] ?? '') == '0'}selected{/if}>停用</option>
             </select>
         </label>
     </div>

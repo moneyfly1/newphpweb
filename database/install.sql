@@ -499,7 +499,7 @@ CREATE TABLE IF NOT EXISTS webhook_logs (
 
 -- ==================== 初始数据 ====================
 
--- 管理员: 3219904322@qq.com / admin123456
+-- 管理员: admin@qq.com / admin123456
 -- 用户: user@cboard.local / user123
 INSERT OR IGNORE INTO users (id, email, password_hash, nickname, role, status, balance, invite_code) VALUES
   (1, '3219904322@qq.com', '$2y$10$7jVmYlgdIJOqIhnCeeUyWeb2v9JjxnughheNS9KxWdvgych0bDk4W', 'Admin', 1, 1, 0.00, 'ADMIN001'),
